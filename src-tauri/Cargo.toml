@@ -18,12 +18,18 @@ pdf-extract = "0.7"
 anyhow = "1"
 log = "0.4"
 tokio-stream = "0.1"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
+lancedb = { version = "0.16", optional = true }
+tokenizers = { version = "0.21", optional = true }
+futures = "0.3"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [features]
 default = []
+p2-knowledge = ["lancedb", "tokenizers"]
 
 [lib]
 name = "panda_ai_desktop_agent_lib"

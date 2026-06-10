@@ -73,6 +73,14 @@ pub fn run() {
             commands::parser_cmds::extract_file_text,
             commands::window_cmds::check_first_run,
             commands::window_cmds::collapse_window,
+            #[cfg(feature = "p2-knowledge")]
+            commands::knowledge_cmds::import_file,
+            #[cfg(feature = "p2-knowledge")]
+            commands::knowledge_cmds::search_knowledge,
+            #[cfg(feature = "p2-knowledge")]
+            commands::knowledge_cmds::list_knowledge_files,
+            #[cfg(feature = "p2-knowledge")]
+            commands::knowledge_cmds::delete_knowledge_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
