@@ -1,9 +1,12 @@
+import { PandaWindow } from "./components/panda/PandaWindow";
+import { useChat } from "./hooks/useChat";
+import { useConfig } from "./hooks/useConfig";
+
 function App() {
-  return (
-    <div className="w-full h-full flex items-center justify-center text-white">
-      <p>Panda AI</p>
-    </div>
-  );
+  useChat();
+  useConfig();
+
+  return <PandaWindow />;
 }
 
 export default App;
