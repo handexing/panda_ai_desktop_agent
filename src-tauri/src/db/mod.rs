@@ -1,5 +1,6 @@
 pub mod schema;
 pub mod models;
+pub mod repository;
 
 use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
