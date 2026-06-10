@@ -1,7 +1,18 @@
 import { create } from "zustand";
 import type { Conversation, Message } from "../lib/tauri";
 
-export type PandaState = "idle" | "thinking" | "error";
+export type PandaState =
+  | "idle"
+  | "thinking"
+  | "error"
+  | "coffee"
+  | "flipbook"
+  | "type"
+  | "sleep"
+  | "talk"
+  | "raisepaw"
+  | "happy"
+  | "angry";
 
 interface PandaStore {
   // Panda animation state

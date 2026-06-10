@@ -44,7 +44,7 @@ export function HistoryPanel() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center pointer-events-auto">
       <div className="bg-gray-800 rounded-2xl p-6 w-[90vw] max-w-md mx-auto max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-white text-lg font-medium">历史记录</h2>

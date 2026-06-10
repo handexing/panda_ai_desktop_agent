@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePandaStore } from "../../stores/pandaStore";
 import { createConversation, listConversations } from "../../lib/tauri";
+import { emit } from "@tauri-apps/api/event";
 
 interface MenuItem {
   label: string;
@@ -40,24 +41,83 @@ export function PandaContextMenu() {
         const store = usePandaStore.getState();
         store.setCurrentConversationId(conv.id);
         store.setMessages([]);
-        store.setChatOpen(true);
-        const list = await listConversations();
-        store.setConversations(list);
+        store.setConversations(await listConversations());
         setVisible(false);
+
+        // Open/focus the chat window with the new conversation
+        const { WebviewWindow } = await import(
+          "@tauri-apps/api/webviewWindow"
+        );
+        const existing = await WebviewWindow.getByLabel("chat");
+        if (existing) {
+          await emit("chat:set-conversation", { conversationId: conv.id });
+          await existing.setFocus();
+        } else {
+          new WebviewWindow("chat", {
+            url: `/?view=chat&convId=${conv.id}`,
+            title: "Panda AI",
+            width: 400,
+            height: 600,
+            center: true,
+            decorations: false,
+            resizable: true,
+          });
+        }
       },
     },
     {
       label: "API 配置",
-      action: () => {
-        usePandaStore.getState().setConfigOpen(true);
+      action: async () => {
         setVisible(false);
+        const { WebviewWindow } = await import(
+          "@tauri-apps/api/webviewWindow"
+        );
+        const existing = await WebviewWindow.getByLabel("chat");
+        if (existing) {
+          await emit("panel:open", { panel: "config" });
+          await existing.setFocus();
+        } else {
+          new WebviewWindow("chat", {
+            url: "/?view=chat",
+            title: "Panda AI",
+            width: 400,
+            height: 600,
+            center: true,
+            decorations: false,
+            resizable: true,
+          });
+          // Chat window will need time to mount before listening for events
+          setTimeout(() => {
+            emit("panel:open", { panel: "config" });
+          }, 500);
+        }
       },
     },
     {
       label: "历史记录",
-      action: () => {
-        usePandaStore.getState().setHistoryOpen(true);
+      action: async () => {
         setVisible(false);
+        const { WebviewWindow } = await import(
+          "@tauri-apps/api/webviewWindow"
+        );
+        const existing = await WebviewWindow.getByLabel("chat");
+        if (existing) {
+          await emit("panel:open", { panel: "history" });
+          await existing.setFocus();
+        } else {
+          new WebviewWindow("chat", {
+            url: "/?view=chat",
+            title: "Panda AI",
+            width: 400,
+            height: 600,
+            center: true,
+            decorations: false,
+            resizable: true,
+          });
+          setTimeout(() => {
+            emit("panel:open", { panel: "history" });
+          }, 500);
+        }
       },
     },
     {
@@ -75,7 +135,7 @@ export function PandaContextMenu() {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-gray-800 border border-white/20 rounded-lg shadow-xl py-1 min-w-[140px]"
+      className="fixed z-50 bg-gray-800 border border-white/20 rounded-lg shadow-xl py-1 min-w-[140px] pointer-events-auto"
       style={{ left: pos.x, top: pos.y }}
     >
       {items.map((item) => (

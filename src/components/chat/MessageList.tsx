@@ -1,4 +1,6 @@
 import { useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { usePandaStore } from "../../stores/pandaStore";
 
 export function MessageList() {
@@ -19,13 +21,21 @@ export function MessageList() {
           className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
         >
           <div
-            className={`max-w-[80%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
+            className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
               msg.role === "user"
                 ? "bg-blue-600 text-white"
                 : "bg-white/10 text-white/90"
             }`}
           >
-            {msg.content}
+            {msg.role === "user" ? (
+              msg.content
+            ) : (
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -33,7 +43,15 @@ export function MessageList() {
       {isStreaming && (
         <div className="flex justify-start">
           <div className="max-w-[80%] rounded-xl px-3 py-2 text-sm bg-white/10 text-white/90">
-            {streamingText}
+            {streamingText ? (
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {streamingText}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <span className="inline-block w-1.5 h-4 bg-blue-400 animate-pulse" />
+            )}
             <span className="inline-block w-1.5 h-4 bg-blue-400 ml-0.5 animate-pulse" />
           </div>
         </div>

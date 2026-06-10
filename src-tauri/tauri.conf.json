@@ -15,8 +15,8 @@
       {
         "label": "panda",
         "title": "Panda AI",
-        "width": 200,
-        "height": 280,
+        "width": 220,
+        "height": 220,
         "center": true,
         "transparent": true,
         "decorations": false,

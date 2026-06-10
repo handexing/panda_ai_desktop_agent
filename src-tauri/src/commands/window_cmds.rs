@@ -10,7 +10,7 @@ pub fn check_first_run(pool: State<'_, DbPool>) -> Result<bool, String> {
 
 #[tauri::command]
 pub async fn collapse_window(window: tauri::Window) -> Result<(), String> {
-    window.set_size(tauri::LogicalSize::new(200, 280))
+    window.set_size(tauri::LogicalSize::new(220, 220))
         .map_err(|e| e.to_string())?;
     window.center().map_err(|e| e.to_string())?;
     Ok(())

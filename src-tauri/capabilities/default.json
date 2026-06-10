@@ -1,7 +1,7 @@
 {
   "identifier": "default",
-  "description": "Default permissions",
-  "windows": ["panda"],
+  "description": "Default permissions for both panda and chat windows",
+  "windows": ["panda", "chat"],
   "permissions": [
     "core:default",
     "core:window:default",
@@ -13,6 +13,10 @@
     "core:window:allow-close",
     "core:window:allow-show",
     "core:window:allow-hide",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:webview:allow-create-webview-window",
     "core:event:default",
     "core:event:allow-listen",
     "core:event:allow-emit"

@@ -10,3 +10,21 @@ html, body, #root {
   overflow: hidden;
   background: transparent;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; scale: 0.5; }
+  to   { opacity: 1; scale: 1; }
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.2s ease-out both;
+}
+
+.radial-menu-btn:hover {
+  scale: 1.1;
+}

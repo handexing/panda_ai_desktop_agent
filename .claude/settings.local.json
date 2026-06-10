@@ -12,7 +12,31 @@
       "Bash(echo \"exit: $?\")",
       "Bash(cargo clippy *)",
       "Bash(npx tsc *)",
-      "Bash(cargo build *)"
+      "Bash(cargo build *)",
+      "Bash(sw_vers *)",
+      "Bash(cargo search *)",
+      "Bash(cargo update *)",
+      "WebSearch",
+      "Bash(kill 96738)",
+      "Bash(./target/debug/panda-ai-desktop-agent)",
+      "Bash(kill %1)",
+      "Bash(wait %1)",
+      "Bash(file *)",
+      "Bash(identify icons/32x32.png icons/128x128.png icons/128x128@2x.png)",
+      "Bash(python3 -c ' *)",
+      "Bash(mkdir -p /tmp/panda_icon.iconset)",
+      "Bash(cp icons/128x128.png /tmp/panda_icon.iconset/icon_128x128.png)",
+      "Bash(sips -z 16 16 icons/128x128.png --out /tmp/panda_icon.iconset/icon_16x16.png)",
+      "Bash(sips -z 32 32 icons/128x128.png --out /tmp/panda_icon.iconset/icon_16x16@2x.png)",
+      "Bash(sips -z 32 32 icons/128x128.png --out /tmp/panda_icon.iconset/icon_32x32.png)",
+      "Bash(cargo tauri *)",
+      "Bash(sips *)",
+      "Bash(python3 *)",
+      "Bash(pkill -f \"panda-ai-desktop-agent\")",
+      "Bash(lsof -ti:1420)",
+      "Bash(xargs kill *)",
+      "Bash(identify /Users/handexing/work/panda_ai_desktop_agent/doc/pet.gif)",
+      "Bash(ffprobe -v quiet -print_format json -show_streams /Users/handexing/work/panda_ai_desktop_agent/doc/pet.gif)"
     ]
   }
 }

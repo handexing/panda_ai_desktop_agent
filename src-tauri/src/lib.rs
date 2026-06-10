@@ -35,8 +35,8 @@ pub fn run() {
                     let screen_size = screen.size();
                     let (x, y) = (position.x, position.y);
                     let snap_dist = 15;
-                    let win_w = 200i32;
-                    let win_h = 280i32;
+                    let win_w = 220i32;
+                    let win_h = 220i32;
 
                     let mut new_x = x;
                     let mut new_y = y;

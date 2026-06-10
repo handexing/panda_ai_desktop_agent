@@ -1,11 +1,11 @@
 import { PandaWindow } from "./components/panda/PandaWindow";
-import { useChat } from "./hooks/useChat";
-import { useConfig } from "./hooks/useConfig";
+import { ChatWindow } from "./components/chat/ChatWindow";
 
 function App() {
-  useChat();
-  useConfig();
-
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("view") === "chat") {
+    return <ChatWindow />;
+  }
   return <PandaWindow />;
 }
 

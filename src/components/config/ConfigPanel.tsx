@@ -43,7 +43,7 @@ export function ConfigPanel() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center pointer-events-auto">
       <div className="bg-gray-800 rounded-2xl p-6 w-[90vw] max-w-md mx-auto">
         <h2 className="text-white text-lg font-medium mb-4">API 配置</h2>
 
