@@ -66,12 +66,14 @@ pub fn update_conversation_time(pool: &DbPool, conv_id: &str) -> Result<(), Stri
 
 pub fn delete_conversation_and_messages(pool: &DbPool, conv_id: &str) -> Result<(), String> {
     let mut conn = pool.get().map_err(|e| e.to_string())?;
-    diesel::delete(messages::table.filter(messages::conversation_id.eq(conv_id)))
-        .execute(&mut conn)
-        .map_err(|e| e.to_string())?;
-    diesel::delete(conversations::table.filter(conversations::id.eq(conv_id)))
-        .execute(&mut conn)
-        .map_err(|e| e.to_string())?;
+    conn.transaction(|conn| {
+        diesel::delete(messages::table.filter(messages::conversation_id.eq(conv_id)))
+            .execute(conn)?;
+        diesel::delete(conversations::table.filter(conversations::id.eq(conv_id)))
+            .execute(conn)?;
+        Ok(())
+    })
+    .map_err(|e: diesel::result::Error| e.to_string())?;
     Ok(())
 }
 
