@@ -1,0 +1,29 @@
+[package]
+name = "panda-ai-desktop-agent"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["stream"] }
+tokio = { version = "1", features = ["full"] }
+diesel = { version = "2", features = ["sqlite", "r2d2"] }
+diesel_migrations = "2"
+r2d2 = "0.8"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+pdf-extract = "0.7"
+anyhow = "1"
+log = "0.4"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+default = []
+
+[lib]
+name = "panda_ai_desktop_agent_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
