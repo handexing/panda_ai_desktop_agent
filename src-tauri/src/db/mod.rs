@@ -9,16 +9,16 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 
-pub fn create_pool(db_path: &str) -> DbPool {
+pub fn create_pool(db_path: &str) -> Result<DbPool, Box<dyn std::error::Error + Send + Sync>> {
     let manager = ConnectionManager::<SqliteConnection>::new(db_path);
-    Pool::builder()
+    let pool = Pool::builder()
         .max_size(4)
-        .build(manager)
-        .expect("Failed to create DB pool")
+        .build(manager)?;
+    Ok(pool)
 }
 
-pub fn run_migrations(pool: &DbPool) {
-    let mut conn = pool.get().expect("Failed to get DB connection");
-    conn.run_pending_migrations(MIGRATIONS)
-        .expect("Failed to run migrations");
+pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = pool.get()?;
+    conn.run_pending_migrations(MIGRATIONS)?;
+    Ok(())
 }
