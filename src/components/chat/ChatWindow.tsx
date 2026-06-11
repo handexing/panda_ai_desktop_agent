@@ -1,12 +1,13 @@
 import { useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Plus, History, Settings } from "lucide-react";
+import { Plus, History, Settings, FileText } from "lucide-react";
 import { useConfig } from "../../hooks/useConfig";
 import { useChat } from "../../hooks/useChat";
 import { ChatPanel } from "./ChatPanel";
 import { ConfigPanel } from "../config/ConfigPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
+import { KnowledgePanel } from "../knowledge/KnowledgePanel";
 import { usePandaStore } from "../../stores/pandaStore";
 import { createConversation } from "../../lib/tauri";
 
@@ -89,6 +90,8 @@ export function ChatWindow() {
           store.setConfigOpen(true);
         } else if (event.payload.panel === "history") {
           store.setHistoryOpen(true);
+        } else if (event.payload.panel === "knowledge") {
+          store.setKnowledgePanelOpen(true);
         }
       },
     );
@@ -164,6 +167,13 @@ export function ChatWindow() {
         </button>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => usePandaStore.getState().setKnowledgePanelOpen(true)}
+            className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="知识库"
+          >
+            <FileText size={16} />
+          </button>
+          <button
             onClick={() => usePandaStore.getState().setHistoryOpen(true)}
             className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
             title="历史记录"
@@ -188,6 +198,7 @@ export function ChatWindow() {
       {/* Modals */}
       <ConfigPanel />
       <HistoryPanel />
+      <KnowledgePanel />
     </div>
   );
 }

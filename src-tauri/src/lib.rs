@@ -3,6 +3,9 @@ mod api;
 mod parser;
 mod commands;
 
+#[cfg(feature = "p2-knowledge")]
+mod lancedb;
+
 use std::path::PathBuf;
 use tauri::Manager;
 
@@ -15,6 +18,7 @@ fn get_db_path(app: &tauri::App) -> PathBuf {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let db_path = get_db_path(app);
             let pool = db::create_pool(db_path.to_str().unwrap())
@@ -70,7 +74,10 @@ pub fn run() {
             commands::chat_cmds::get_messages,
             commands::chat_cmds::delete_conversation,
             commands::chat_cmds::stream_chat,
+            #[cfg(feature = "p2-knowledge")]
+            commands::chat_cmds::stream_multimodal_chat,
             commands::parser_cmds::extract_file_text,
+            commands::parser_cmds::image_to_base64,
             commands::window_cmds::check_first_run,
             commands::window_cmds::collapse_window,
             #[cfg(feature = "p2-knowledge")]

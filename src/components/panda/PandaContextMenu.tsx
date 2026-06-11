@@ -72,24 +72,20 @@ export function PandaContextMenu() {
         const { WebviewWindow } = await import(
           "@tauri-apps/api/webviewWindow"
         );
-        const existing = await WebviewWindow.getByLabel("chat");
+        const existing = await WebviewWindow.getByLabel("config");
         if (existing) {
-          await emit("panel:open", { panel: "config" });
           await existing.setFocus();
         } else {
-          new WebviewWindow("chat", {
-            url: "/?view=chat",
-            title: "Panda AI",
+          new WebviewWindow("config", {
+            url: "/?view=config",
+            title: "Panda AI - 配置",
             width: 400,
-            height: 600,
+            height: 560,
             center: true,
             decorations: false,
+            transparent: true,
             resizable: true,
           });
-          // Chat window will need time to mount before listening for events
-          setTimeout(() => {
-            emit("panel:open", { panel: "config" });
-          }, 500);
         }
       },
     },

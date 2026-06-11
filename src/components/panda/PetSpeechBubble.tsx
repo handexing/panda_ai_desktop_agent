@@ -16,6 +16,7 @@ const STATE_BUBBLES: Record<
   happy: { text: "好开心", emoji: "😊" },
   angry: { text: "生气了", emoji: "😠" },
   error: { text: "出错了", emoji: "😵" },
+  executing: { text: "检索中...", emoji: "📚" },
 };
 
 const MIN_DISPLAY_MS = 3500;

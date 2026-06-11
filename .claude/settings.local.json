@@ -36,7 +36,25 @@
       "Bash(lsof -ti:1420)",
       "Bash(xargs kill *)",
       "Bash(identify /Users/handexing/work/panda_ai_desktop_agent/doc/pet.gif)",
-      "Bash(ffprobe -v quiet -print_format json -show_streams /Users/handexing/work/panda_ai_desktop_agent/doc/pet.gif)"
+      "Bash(ffprobe -v quiet -print_format json -show_streams /Users/handexing/work/panda_ai_desktop_agent/doc/pet.gif)",
+      "Bash(rustc *)",
+      "Bash(rustup update *)",
+      "Bash(rustup install *)",
+      "Bash(rustup toolchain *)",
+      "Bash(curl -s \"https://crates.io/api/v1/crates/lancedb/versions\")",
+      "Bash(RUSTUP_MAX_RETRIES=10 rustup toolchain install nightly --profile minimal --no-self-update)",
+      "WebFetch(domain:crates.io)",
+      "Bash(rustup component *)",
+      "Bash(rustup default *)",
+      "Bash(kill %1 %2 %3)",
+      "Bash(rm -f ~/.rustup/downloads/fb529ae57924e91cf318307ceeb6bd233a7b8cc898fe699cfaabb9aca7b2794b*)",
+      "Bash(rm -f ~/.rustup/downloads/*.partial)",
+      "Read(//Users/handexing/.rustup/**)",
+      "Read(//Users/handexing/.rustup/downloads/**)",
+      "Bash(rm -rf ~/.rustup/tmp)",
+      "Bash(mkdir -p ~/.rustup/tmp)",
+      "Bash(cargo test *)",
+      "Bash(npm ls *)"
     ]
   }
 }

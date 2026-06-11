@@ -57,7 +57,47 @@ export async function streamChat(
   return invoke("stream_chat", { conversationId, message });
 }
 
+export async function streamMultimodalChat(
+  conversationId: string,
+  message: string,
+  images: string[],
+): Promise<void> {
+  return invoke("stream_multimodal_chat", { conversationId, message, images });
+}
+
 // File
 export async function extractFileText(filePath: string): Promise<string> {
   return invoke("extract_file_text", { filePath });
+}
+
+export async function imageToBase64(filePath: string): Promise<string> {
+  return invoke("image_to_base64", { filePath });
+}
+
+// Knowledge base
+export interface KnowledgeFile {
+  file_name: string;
+  chunk_count: number;
+}
+
+export interface SearchResult {
+  text: string;
+  file_name: string;
+  score: number;
+}
+
+export async function importFile(filePath: string): Promise<KnowledgeFile> {
+  return invoke("import_file", { filePath });
+}
+
+export async function listKnowledgeFiles(): Promise<KnowledgeFile[]> {
+  return invoke("list_knowledge_files");
+}
+
+export async function deleteKnowledgeFile(fileName: string): Promise<void> {
+  return invoke("delete_knowledge_file", { fileName });
+}
+
+export async function searchKnowledge(query: string, topK?: number): Promise<SearchResult[]> {
+  return invoke("search_knowledge", { query, topK });
 }

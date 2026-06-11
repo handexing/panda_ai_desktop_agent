@@ -12,7 +12,8 @@ export type PandaState =
   | "talk"
   | "raisepaw"
   | "happy"
-  | "angry";
+  | "angry"
+  | "executing";
 
 interface PandaStore {
   // Panda animation state
@@ -51,6 +52,10 @@ interface PandaStore {
   // Error
   errorMessage: string | null;
   setErrorMessage: (msg: string | null) => void;
+
+  // Knowledge panel
+  knowledgePanelOpen: boolean;
+  setKnowledgePanelOpen: (open: boolean) => void;
 }
 
 export const usePandaStore = create<PandaStore>((set) => ({
@@ -91,4 +96,8 @@ export const usePandaStore = create<PandaStore>((set) => ({
   // Error
   errorMessage: null,
   setErrorMessage: (msg) => set({ errorMessage: msg }),
+
+  // Knowledge panel
+  knowledgePanelOpen: false,
+  setKnowledgePanelOpen: (open) => set({ knowledgePanelOpen: open }),
 }));

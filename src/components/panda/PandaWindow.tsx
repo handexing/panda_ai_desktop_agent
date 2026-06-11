@@ -54,28 +54,27 @@ export function PandaWindow() {
     }
   }, []);
 
-  // Open chat window and show config panel
+  // Open standalone config window
   const openConfigWindow = useCallback(async () => {
     try {
       const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-      const existing = await WebviewWindow.getByLabel("chat");
+      const existing = await WebviewWindow.getByLabel("config");
       if (existing) {
-        await emit("panel:open", { panel: "config" });
         await existing.setFocus();
-      } else {
-        new WebviewWindow("chat", {
-          url: "/?view=chat",
-          title: "Panda AI",
-          width: 400,
-          height: 600,
-          center: true,
-          decorations: false,
-          resizable: true,
-        });
-        setTimeout(() => emit("panel:open", { panel: "config" }), 500);
+        return;
       }
+      new WebviewWindow("config", {
+        url: "/?view=config",
+        title: "Panda AI - 配置",
+        width: 400,
+        height: 560,
+        center: true,
+        decorations: false,
+        transparent: true,
+        resizable: true,
+      });
     } catch (e) {
-      console.error("Failed to create chat window:", e);
+      console.error("Failed to create config window:", e);
     }
   }, []);
 
