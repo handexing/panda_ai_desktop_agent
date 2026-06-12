@@ -332,3 +332,63 @@ pub async fn test_connection(
 
     Ok(response.status().is_success())
 }
+
+/// Send a non-streaming chat request with function calling support.
+pub async fn agent_chat(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    messages: &[crate::agent::types::AgentMessage],
+    tools: &[serde_json::Value],
+) -> Result<crate::agent::types::FunctionCallResponse, String> {
+    let url = format!("{}/v1/chat/completions", base_url.trim_end_matches('/'));
+    let client = Client::builder()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    // Build messages with only non-None fields
+    let messages_value: Vec<serde_json::Value> = messages.iter().map(|m| {
+        let mut obj = serde_json::json!({ "role": m.role });
+        if let Some(ref content) = m.content {
+            obj["content"] = serde_json::json!(content);
+        }
+        if let Some(ref tool_calls) = m.tool_calls {
+            obj["tool_calls"] = serde_json::to_value(tool_calls).unwrap_or_default();
+        }
+        if let Some(ref tool_call_id) = m.tool_call_id {
+            obj["tool_call_id"] = serde_json::json!(tool_call_id);
+        }
+        obj
+    }).collect();
+
+    let mut body = serde_json::json!({
+        "model": model,
+        "messages": messages_value,
+        "stream": false,
+    });
+
+    if !tools.is_empty() {
+        body["tools"] = serde_json::json!(tools);
+        body["tool_choice"] = serde_json::json!("auto");
+    }
+
+    let response = client
+        .post(&url)
+        .header(header::AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(header::CONTENT_TYPE, "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Agent API request failed: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let err = response.text().await.unwrap_or_default();
+        return Err(format!("Agent API {}: {}", status, err));
+    }
+
+    response.json::<crate::agent::types::FunctionCallResponse>()
+        .await
+        .map_err(|e| format!("Failed to parse agent response: {}", e))
+}
