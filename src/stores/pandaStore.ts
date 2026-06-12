@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Conversation, Message } from "../lib/tauri";
+import type { Conversation, Message, TraceStep } from "../lib/tauri";
 
 export type PandaState =
   | "idle"
@@ -60,6 +60,15 @@ interface PandaStore {
   // Dynamic speech bubble text (overrides state default when set)
   speechText: string | null;
   setSpeechText: (text: string | null) => void;
+
+  // Agent trace
+  traceSteps: TraceStep[];
+  addTraceStep: (step: TraceStep) => void;
+  clearTraceSteps: () => void;
+
+  // Voice
+  voiceEnabled: boolean;
+  setVoiceEnabled: (v: boolean) => void;
 }
 
 export const usePandaStore = create<PandaStore>((set) => ({
@@ -108,4 +117,13 @@ export const usePandaStore = create<PandaStore>((set) => ({
   // Speech text
   speechText: null,
   setSpeechText: (text) => set({ speechText: text }),
+
+  // Agent trace
+  traceSteps: [],
+  addTraceStep: (step) => set((s) => ({ traceSteps: [...s.traceSteps, step] })),
+  clearTraceSteps: () => set({ traceSteps: [] }),
+
+  // Voice
+  voiceEnabled: true,
+  setVoiceEnabled: (v) => set({ voiceEnabled: v }),
 }));

@@ -101,3 +101,43 @@ export async function deleteKnowledgeFile(fileName: string): Promise<void> {
 export async function searchKnowledge(query: string, topK?: number): Promise<SearchResult[]> {
   return invoke("search_knowledge", { query, topK });
 }
+
+// Agent
+export interface TraceStep {
+  type: "planning" | "executing" | "observing" | "done" | "error";
+  detail?: string | { tool: string } | { result: string } | { text: string } | { message: string };
+}
+
+export async function streamAgentChat(
+  conversationId: string,
+  message: string,
+): Promise<void> {
+  return invoke("stream_agent_chat", { conversationId, message });
+}
+
+// Voice
+export async function ttsSpeak(text: string): Promise<string> {
+  return invoke("tts_speak", { text });
+}
+
+// MCP servers
+export interface McpServer {
+  id: string;
+  name: string;
+  command: string;
+  args: string;
+}
+
+export async function listMcpServers(): Promise<McpServer[]> {
+  return invoke("list_mcp_servers");
+}
+
+export async function addMcpServer(
+  name: string, command: string, args: string,
+): Promise<McpServer> {
+  return invoke("add_mcp_server", { name, command, args });
+}
+
+export async function deleteMcpServer(id: string): Promise<void> {
+  return invoke("delete_mcp_server", { id });
+}
