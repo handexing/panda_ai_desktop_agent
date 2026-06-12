@@ -77,3 +77,57 @@ pub struct NewMemoryItem {
     pub category: String,
     pub content: String,
 }
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
+#[diesel(table_name = crate::db::schema::knowledge_nodes)]
+pub struct KnowledgeNode {
+    pub id: i32,
+    pub name: String,
+    pub node_type: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::db::schema::knowledge_nodes)]
+pub struct NewKnowledgeNode {
+    pub name: String,
+    pub node_type: String,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
+#[diesel(table_name = crate::db::schema::knowledge_edges)]
+pub struct KnowledgeEdge {
+    pub id: i32,
+    pub from_node_id: i32,
+    pub to_node_id: i32,
+    pub relation: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::db::schema::knowledge_edges)]
+pub struct NewKnowledgeEdge {
+    pub from_node_id: i32,
+    pub to_node_id: i32,
+    pub relation: String,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
+#[diesel(table_name = crate::db::schema::reminders)]
+pub struct Reminder {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub remind_at: Option<NaiveDateTime>,
+    pub is_done: bool,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::db::schema::reminders)]
+pub struct NewReminder {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub remind_at: Option<NaiveDateTime>,
+}

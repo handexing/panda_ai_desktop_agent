@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 use crate::db::schema::{conversations, messages, settings};
-use crate::db::models::{Conversation, Message, NewConversation, NewMessage, McpServer, NewMcpServer, MemoryItem, NewMemoryItem};
+use crate::db::models::{Conversation, Message, NewConversation, NewMessage, McpServer, NewMcpServer, MemoryItem, NewMemoryItem, KnowledgeNode, NewKnowledgeNode, KnowledgeEdge, NewKnowledgeEdge, Reminder, NewReminder};
 use crate::db::DbPool;
 use uuid::Uuid;
 use chrono::Utc;
@@ -155,4 +155,85 @@ pub fn memory_item_count(pool: &DbPool) -> Result<i64, String> {
     use crate::db::schema::memory_items::dsl::*;
     let mut conn = pool.get().map_err(|e| e.to_string())?;
     memory_items.count().get_result(&mut conn).map_err(|e| e.to_string())
+}
+
+// === Knowledge Nodes ===
+
+pub fn list_knowledge_nodes(pool: &DbPool) -> Result<Vec<KnowledgeNode>, String> {
+    use crate::db::schema::knowledge_nodes::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    knowledge_nodes.order(created_at.desc()).load(&mut conn).map_err(|e| e.to_string())
+}
+
+pub fn add_knowledge_node(pool: &DbPool, node: NewKnowledgeNode) -> Result<KnowledgeNode, String> {
+    use crate::db::schema::knowledge_nodes;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::insert_into(knowledge_nodes::table).values(&node).execute(&mut conn).map_err(|e| e.to_string())?;
+    knowledge_nodes::table.order(knowledge_nodes::id.desc()).first(&mut conn).map_err(|e| e.to_string())
+}
+
+// === Knowledge Edges ===
+
+pub fn list_knowledge_edges(pool: &DbPool) -> Result<Vec<KnowledgeEdge>, String> {
+    use crate::db::schema::knowledge_edges::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    knowledge_edges.load(&mut conn).map_err(|e| e.to_string())
+}
+
+pub fn add_knowledge_edge(pool: &DbPool, edge: NewKnowledgeEdge) -> Result<KnowledgeEdge, String> {
+    use crate::db::schema::knowledge_edges;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::insert_into(knowledge_edges::table).values(&edge).execute(&mut conn).map_err(|e| e.to_string())?;
+    knowledge_edges::table.order(knowledge_edges::id.desc()).first(&mut conn).map_err(|e| e.to_string())
+}
+
+pub fn clear_knowledge_graph(pool: &DbPool) -> Result<(), String> {
+    use crate::db::schema::knowledge_edges::dsl as edges_dsl;
+    use crate::db::schema::knowledge_nodes::dsl as nodes_dsl;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::delete(edges_dsl::knowledge_edges).execute(&mut conn).map_err(|e| e.to_string())?;
+    diesel::delete(nodes_dsl::knowledge_nodes).execute(&mut conn).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// === Reminders ===
+
+pub fn list_reminders(pool: &DbPool) -> Result<Vec<Reminder>, String> {
+    use crate::db::schema::reminders::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    reminders.order(created_at.desc()).load(&mut conn).map_err(|e| e.to_string())
+}
+
+pub fn add_reminder(pool: &DbPool, reminder: NewReminder) -> Result<Reminder, String> {
+    use crate::db::schema::reminders;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::insert_into(reminders::table).values(&reminder).execute(&mut conn).map_err(|e| e.to_string())?;
+    reminders::table.find(&reminder.id).first(&mut conn).map_err(|e| e.to_string())
+}
+
+pub fn mark_reminder_done(pool: &DbPool, reminder_id: &str) -> Result<(), String> {
+    use crate::db::schema::reminders::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::update(reminders.find(reminder_id))
+        .set(is_done.eq(true))
+        .execute(&mut conn).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn delete_reminder(pool: &DbPool, reminder_id: &str) -> Result<(), String> {
+    use crate::db::schema::reminders::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    diesel::delete(reminders.find(reminder_id)).execute(&mut conn).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn get_due_reminders(pool: &DbPool) -> Result<Vec<Reminder>, String> {
+    use crate::db::schema::reminders::dsl::*;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now().naive_utc();
+    reminders
+        .filter(is_done.eq(false))
+        .filter(remind_at.le(now))
+        .load(&mut conn)
+        .map_err(|e| e.to_string())
 }
