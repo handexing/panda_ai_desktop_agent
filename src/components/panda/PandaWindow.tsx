@@ -11,7 +11,6 @@ import { usePandaEvents } from "../../hooks/usePandaEvents";
 
 export function PandaWindow() {
   const pandaState = usePandaStore((s) => s.pandaState);
-  const setPandaState = usePandaStore((s) => s.setPandaState);
   const errorMessage = usePandaStore((s) => s.errorMessage);
   const menuWasOpenRef = useRef(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -112,14 +111,36 @@ export function PandaWindow() {
     }
   }, []);
 
-  // Interactive play with the pet
+  const interactPhrases = [
+    "嘤嘤嘤~ 要抱抱！",
+    "今天也要加油鸭~",
+    "摸摸头，好舒服~",
+    "竹子真好吃，嘎嘣脆！",
+    "主人最好了！（蹭蹭）",
+    "困了…让我趴一会儿…",
+    "哇！有好吃的不给我？",
+    "翻滚翻滚~ 滚滚来啦！",
+    "嘿嘿，偷偷看你呢~",
+    "今天天气真好，想出去玩！",
+    "不理你的话我会生气的！",
+    "呼呼…正在充电中…",
+    "听说你喜欢熊猫？（害羞）",
+    "给你一个大大的熊猫抱！",
+    "吃饱了，打个滚消化一下~",
+    "嘿！吓到你了吗？",
+    "做你的桌面宠物真幸福~",
+    "竹子味冰淇淋了解一下？",
+    "别看我现在懒，爬树可厉害了！",
+    "嘘…在装死，别打扰我~",
+  ];
+
+  // Interactive play — uses speechText only, no STATE_BUBBLES interference
   const interact = useCallback(async () => {
-    setPandaState("raisepaw");
-    await new Promise((r) => setTimeout(r, 1200));
-    setPandaState("happy");
-    await new Promise((r) => setTimeout(r, 1200));
-    setPandaState("idle");
-  }, [setPandaState]);
+    const phrase = interactPhrases[Math.floor(Math.random() * interactPhrases.length)];
+    usePandaStore.getState().setSpeechText(phrase);
+    await new Promise((r) => setTimeout(r, 2500));
+    usePandaStore.getState().setSpeechText(null);
+  }, []);
 
   const radialMenuItems = [
     { icon: <PawPrint size={18} />, label: "互动", action: interact },

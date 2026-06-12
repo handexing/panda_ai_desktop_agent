@@ -56,6 +56,10 @@ interface PandaStore {
   // Knowledge panel
   knowledgePanelOpen: boolean;
   setKnowledgePanelOpen: (open: boolean) => void;
+
+  // Dynamic speech bubble text (overrides state default when set)
+  speechText: string | null;
+  setSpeechText: (text: string | null) => void;
 }
 
 export const usePandaStore = create<PandaStore>((set) => ({
@@ -100,4 +104,8 @@ export const usePandaStore = create<PandaStore>((set) => ({
   // Knowledge panel
   knowledgePanelOpen: false,
   setKnowledgePanelOpen: (open) => set({ knowledgePanelOpen: open }),
+
+  // Speech text
+  speechText: null,
+  setSpeechText: (text) => set({ speechText: text }),
 }));

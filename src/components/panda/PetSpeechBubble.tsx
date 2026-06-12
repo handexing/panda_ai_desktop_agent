@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { PandaState } from "../../stores/pandaStore";
+import { usePandaStore } from "../../stores/pandaStore";
 
 const STATE_BUBBLES: Record<
   PandaState,
@@ -38,6 +39,7 @@ interface PetSpeechBubbleProps {
 
 
 export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
+  const speechText = usePandaStore((s) => s.speechText);
   const [displayState, setDisplayState] = useState<PandaState | null>(
     STATE_BUBBLES[state] ? state : null,
   );
@@ -61,6 +63,21 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
   }, [state]);
 
   const bubble = displayState ? STATE_BUBBLES[displayState] : null;
+
+  // Show dynamic speechText if set, otherwise show state bubble
+  if (speechText) {
+    return (
+      <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ animation: "fadeIn 0.2s ease-out" }}>
+        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-1.5 max-w-[240px] text-center backdrop-blur-sm whitespace-nowrap">
+          {speechText}
+        </div>
+        <div className="flex justify-center -mt-px">
+          <div className="w-2 h-2 bg-gray-800/90 rotate-45 border-r border-b border-white/10" />
+        </div>
+      </div>
+    );
+  }
+
   if (!bubble) return null;
 
   return (

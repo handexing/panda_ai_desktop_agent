@@ -139,11 +139,9 @@ pub async fn stream_chat(
 
     match result {
         Ok(full_text) => {
-            // Signal UI first so the answer appears immediately
             let _ = app.emit("chat:done", DonePayload {
                 conversation_id: conversation_id.clone(),
             });
-            // Save to DB — best-effort, stream already succeeded
             if let Err(e) = repository::add_message(&pool, &conversation_id, "assistant", &full_text) {
                 log::error!("Failed to save assistant message: {}", e);
             }
