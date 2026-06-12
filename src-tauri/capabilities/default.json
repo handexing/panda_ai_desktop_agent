@@ -1,7 +1,7 @@
 {
   "identifier": "default",
   "description": "Default permissions for both panda and chat windows",
-  "windows": ["panda", "chat", "config", "knowledge"],
+  "windows": ["panda", "chat", "config", "graph", "knowledge", "mcp", "reminder"],
   "permissions": [
     "core:default",
     "core:window:default",

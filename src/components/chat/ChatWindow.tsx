@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Plus, History, Settings, FileText } from "lucide-react";
+import { Plus, History, Settings, FileText, Wrench, GitBranch, Bell } from "lucide-react";
 import { useConfig } from "../../hooks/useConfig";
 import { useChat } from "../../hooks/useChat";
 import { useAgent } from "../../hooks/useAgent";
@@ -37,6 +37,45 @@ export function ChatWindow() {
     } catch (e) {
       console.error("Failed to create conversation:", e);
     }
+  }, []);
+
+  const openMcpWindow = useCallback(async () => {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const existing = await WebviewWindow.getByLabel("mcp");
+    if (existing) {
+      await existing.setFocus();
+      return;
+    }
+    new WebviewWindow("mcp", {
+      url: "/?view=mcp",
+      title: "Panda AI - MCP",
+      width: 420,
+      height: 520,
+      center: true,
+      decorations: false,
+      transparent: true,
+      resizable: true,
+    });
+  }, []);
+
+  const openGraphWindow = useCallback(async () => {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const existing = await WebviewWindow.getByLabel("graph");
+    if (existing) { await existing.setFocus(); return; }
+    new WebviewWindow("graph", {
+      url: "/?view=graph", title: "Panda AI - 知识图谱",
+      width: 420, height: 500, center: true, decorations: false, transparent: true, resizable: true,
+    });
+  }, []);
+
+  const openReminderWindow = useCallback(async () => {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const existing = await WebviewWindow.getByLabel("reminder");
+    if (existing) { await existing.setFocus(); return; }
+    new WebviewWindow("reminder", {
+      url: "/?view=reminder", title: "Panda AI - 提醒",
+      width: 380, height: 500, center: true, decorations: false, transparent: true, resizable: true,
+    });
   }, []);
 
   const handleTitleBarPointerDown = useCallback(
@@ -169,6 +208,27 @@ export function ChatWindow() {
           新对话
         </button>
         <div className="flex items-center gap-2">
+          <button
+            onClick={openMcpWindow}
+            className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="MCP 服务器"
+          >
+            <Wrench size={16} />
+          </button>
+          <button
+            onClick={openGraphWindow}
+            className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="知识图谱"
+          >
+            <GitBranch size={16} />
+          </button>
+          <button
+            onClick={openReminderWindow}
+            className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="提醒"
+          >
+            <Bell size={16} />
+          </button>
           <button
             onClick={() => usePandaStore.getState().setKnowledgePanelOpen(true)}
             className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"

@@ -141,3 +141,52 @@ export async function addMcpServer(
 export async function deleteMcpServer(id: string): Promise<void> {
   return invoke("delete_mcp_server", { id });
 }
+
+export interface McpServerStatus {
+  ok: boolean;
+  tool_count: number;
+  message: string;
+}
+
+export async function checkMcpServer(command: string, args: string): Promise<McpServerStatus> {
+  return invoke("check_mcp_server", { command, args });
+}
+
+// Knowledge graph
+export interface KnowledgeNode {
+  id: number; name: string; node_type: string; created_at: string;
+}
+export interface KnowledgeEdge {
+  id: number; from_node_id: number; to_node_id: number; relation: string; created_at: string;
+}
+
+export async function getGraph(): Promise<{ nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }> {
+  return invoke("get_graph");
+}
+export async function extractGraph(): Promise<string> {
+  return invoke("extract_graph");
+}
+export async function clearGraph(): Promise<void> {
+  return invoke("clear_graph");
+}
+
+// Reminders
+export interface Reminder {
+  id: string; title: string; description: string; remind_at: string | null; is_done: boolean; created_at: string;
+}
+
+export async function listReminders(): Promise<Reminder[]> {
+  return invoke("list_reminders");
+}
+export async function addReminder(title: string, description: string, remindAt: string | null): Promise<Reminder> {
+  return invoke("add_reminder", { title, description, remindAt });
+}
+export async function markReminderDone(id: string): Promise<void> {
+  return invoke("mark_reminder_done", { id });
+}
+export async function deleteReminder(id: string): Promise<void> {
+  return invoke("delete_reminder", { id });
+}
+export async function checkDueReminders(): Promise<{ reminders: Reminder[] }> {
+  return invoke("check_due_reminders");
+}
