@@ -8,3 +8,6 @@ pub mod knowledge_cmds;
 
 #[cfg(feature = "p3-agent")]
 pub mod agent_cmds;
+
+#[cfg(feature = "p4-graph")]
+pub mod graph_cmds;

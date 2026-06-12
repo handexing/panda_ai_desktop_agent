@@ -12,6 +12,8 @@ mod agent;
 mod mcp;
 #[cfg(feature = "p3-agent")]
 mod memory;
+#[cfg(feature = "p4-graph")]
+mod graph;
 
 use std::path::PathBuf;
 use tauri::Manager;
@@ -105,6 +107,26 @@ pub fn run() {
             commands::agent_cmds::add_mcp_server,
             #[cfg(feature = "p3-agent")]
             commands::agent_cmds::delete_mcp_server,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::check_mcp_server,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::transcribe_audio,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::get_graph,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::extract_graph,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::clear_graph,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::list_reminders,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::add_reminder,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::mark_reminder_done,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::delete_reminder,
+            #[cfg(feature = "p4-graph")]
+            commands::graph_cmds::check_due_reminders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
