@@ -26,7 +26,7 @@ export function useFileDrop() {
             createConversation,
             listConversations,
             extractFileText,
-            streamChat,
+            streamAgentChat,
             imageToBase64,
           } = await import("../lib/tauri");
 
@@ -84,7 +84,7 @@ export function useFileDrop() {
           } else {
             store.setPandaState("thinking");
             const text = await extractFileText(filePath);
-            streamChat(convId, `请分析以下文件内容：\n\n${text}`).catch(console.error);
+            streamAgentChat(convId, `请分析以下文件内容：\n\n${text}`).catch(console.error);
           }
         });
       } catch (e) {

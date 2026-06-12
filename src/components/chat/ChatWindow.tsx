@@ -4,6 +4,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Plus, History, Settings, FileText } from "lucide-react";
 import { useConfig } from "../../hooks/useConfig";
 import { useChat } from "../../hooks/useChat";
+import { useAgent } from "../../hooks/useAgent";
+import { TraceBar } from "../trace/TraceBar";
 import { ChatPanel } from "./ChatPanel";
 import { ConfigPanel } from "../config/ConfigPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
@@ -16,6 +18,7 @@ const isMac = navigator.userAgent.includes("Mac");
 export function ChatWindow() {
   useChat();
   useConfig();
+  useAgent();
 
   const win = getCurrentWindow();
 
@@ -190,8 +193,9 @@ export function ChatWindow() {
         </div>
       </div>
 
-      {/* Chat messages + input */}
-      <div className="flex-1 min-h-0">
+      {/* Trace + Chat messages + input */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <TraceBar />
         <ChatPanel />
       </div>
 

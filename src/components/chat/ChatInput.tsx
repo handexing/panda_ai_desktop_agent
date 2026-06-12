@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { emit } from "@tauri-apps/api/event";
+import { Mic, MicOff } from "lucide-react";
 import { usePandaStore } from "../../stores/pandaStore";
-import { createConversation, streamChat } from "../../lib/tauri";
+import { createConversation, streamAgentChat } from "../../lib/tauri";
 
 export function ChatInput() {
   const [text, setText] = useState("");
@@ -9,6 +10,25 @@ export function ChatInput() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isStreaming = usePandaStore((s) => s.isStreaming);
   const setIsStreaming = usePandaStore((s) => s.setIsStreaming);
+  const [listening, setListening] = useState(false);
+  const voiceEnabled = usePandaStore((s) => s.voiceEnabled);
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "zh-CN";
+    recognition.interimResults = false;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setText(transcript);
+      setListening(false);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    setListening(true);
+    recognition.start();
+  };
 
   useEffect(() => {
     if (!isStreaming && inputRef.current) {
@@ -50,7 +70,7 @@ export function ChatInput() {
     setIsStreaming(true);
     emit("panda:state", { state: "thinking" });
     try {
-      await streamChat(convId, msg);
+      await streamAgentChat(convId, msg);
     } catch {
       setIsStreaming(false);
       emit("panda:state", { state: "error" });
@@ -76,6 +96,18 @@ export function ChatInput() {
         disabled={isStreaming}
         className="flex-1 bg-white/5 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none placeholder-white/30 disabled:opacity-50"
       />
+      {voiceEnabled && (
+        <button
+          onClick={startListening}
+          disabled={listening}
+          className={`p-2 rounded-lg transition-colors ${
+            listening ? "text-red-400 bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/10"
+          }`}
+          title="语音输入"
+        >
+          {listening ? <MicOff size={16} /> : <Mic size={16} />}
+        </button>
+      )}
       <button
         onClick={handleSend}
         disabled={!text.trim() || isStreaming || creating}
