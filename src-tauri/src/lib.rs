@@ -6,6 +6,13 @@ mod commands;
 #[cfg(feature = "p2-knowledge")]
 mod lancedb;
 
+#[cfg(feature = "p3-agent")]
+mod agent;
+#[cfg(feature = "p3-agent")]
+mod mcp;
+#[cfg(feature = "p3-agent")]
+mod memory;
+
 use std::path::PathBuf;
 use tauri::Manager;
 
@@ -88,6 +95,16 @@ pub fn run() {
             commands::knowledge_cmds::list_knowledge_files,
             #[cfg(feature = "p2-knowledge")]
             commands::knowledge_cmds::delete_knowledge_file,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::stream_agent_chat,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::tts_speak,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::list_mcp_servers,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::add_mcp_server,
+            #[cfg(feature = "p3-agent")]
+            commands::agent_cmds::delete_mcp_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

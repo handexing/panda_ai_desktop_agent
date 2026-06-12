@@ -26,13 +26,15 @@ arrow-schema = { version = "53", optional = true }
 tokenizers = { version = "0.21", optional = true }
 futures = "0.3"
 tauri-plugin-dialog = "2"
+urlencoding = "2"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [features]
-default = ["p2-knowledge"]
+default = ["p3-agent"]
 p2-knowledge = ["lancedb", "tokenizers", "arrow-array", "arrow-schema"]
+p3-agent = ["p2-knowledge"]
 
 [lib]
 name = "panda_ai_desktop_agent_lib"

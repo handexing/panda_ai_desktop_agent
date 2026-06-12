@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 use chrono::NaiveDateTime;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
 #[diesel(table_name = crate::db::schema::settings)]
@@ -41,5 +41,39 @@ pub struct NewMessage {
     pub id: String,
     pub conversation_id: String,
     pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
+#[diesel(table_name = crate::db::schema::mcp_servers)]
+pub struct McpServer {
+    pub id: String,
+    pub name: String,
+    pub command: String,
+    pub args: String,
+}
+
+#[derive(Debug, Insertable, Deserialize)]
+#[diesel(table_name = crate::db::schema::mcp_servers)]
+pub struct NewMcpServer {
+    pub id: String,
+    pub name: String,
+    pub command: String,
+    pub args: String,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Clone)]
+#[diesel(table_name = crate::db::schema::memory_items)]
+pub struct MemoryItem {
+    pub id: i32,
+    pub category: String,
+    pub content: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = crate::db::schema::memory_items)]
+pub struct NewMemoryItem {
+    pub category: String,
     pub content: String,
 }
