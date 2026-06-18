@@ -4,6 +4,10 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::time::Duration;
+use base64::Engine;
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
+use crate::db::DbPool;
 
 /// Compute the RMS energy of a frame of audio samples.
 pub fn frame_energy(samples: &[f32]) -> f32 {
@@ -70,20 +74,11 @@ pub fn encode_wav(samples: &[i16], sample_rate: u32) -> Vec<u8> {
 /// for a configurable silence timeout.  The returned PCM data is in i16
 /// format ready for WAV encoding or STT API submission.
 pub struct VoiceEngine {
-    #[allow(dead_code)]
-    sample_rate: u32,
-    #[allow(dead_code)]
-    channels: u16,
-    #[allow(dead_code)]
-    interrupt: Arc<AtomicBool>,
 }
 
 impl VoiceEngine {
     pub fn new() -> Self {
         VoiceEngine {
-            sample_rate: 44100,
-            channels: 1,
-            interrupt: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -261,11 +256,6 @@ impl VoiceEngine {
     }
 }
 
-use base64::Engine;
-use serde::Serialize;
-use tauri::{AppHandle, Emitter, State};
-use crate::db::DbPool;
-
 /// Global interrupt signal for cancel_voice_chat.
 /// Stores a reference to the currently active recording's interrupt flag.
 static CURRENT_INTERRUPT: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
@@ -288,20 +278,33 @@ pub async fn voice_chat(
 ) -> Result<String, String> {
     let _ = app.emit("voice:state", VoiceStateEvent { state: "listening".into() });
 
-    let engine = VoiceEngine::new();
-    let interrupt = Arc::new(AtomicBool::new(false));
-
     // 1. Recording + VAD
     let _ = app.emit("voice:state", VoiceStateEvent { state: "recording".into() });
+
+    let interrupt = Arc::new(AtomicBool::new(false));
+    *CURRENT_INTERRUPT.lock().unwrap() = Some(interrupt.clone());
+
     let (samples, sample_rate) = {
-        *CURRENT_INTERRUPT.lock().unwrap() = Some(interrupt.clone());
-        let result = engine.record_until_silence(
-            interrupt.clone(),
-            600,
-            30,
-        );
-        *CURRENT_INTERRUPT.lock().unwrap() = None;
-        result?
+        let engine = VoiceEngine::new();
+        let intr = interrupt.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            engine.record_until_silence(intr, 600, 30)
+        }).await;
+
+        match result {
+            Ok(Ok(data)) => {
+                *CURRENT_INTERRUPT.lock().unwrap() = None;
+                data
+            }
+            Ok(Err(e)) => {
+                *CURRENT_INTERRUPT.lock().unwrap() = None;
+                return Err(e);
+            }
+            Err(join_err) => {
+                *CURRENT_INTERRUPT.lock().unwrap() = None;
+                return Err(format!("录音任务异常: {}", join_err));
+            }
+        }
     };
 
     // 2. Encode to WAV
@@ -336,6 +339,7 @@ pub async fn voice_chat(
     Ok(text)
 }
 
+#[allow(dead_code)]
 /// Split text into sentences by Chinese/English punctuation.
 pub fn split_sentences(text: &str) -> Vec<String> {
     let mut sentences = Vec::new();

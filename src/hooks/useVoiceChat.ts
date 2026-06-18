@@ -64,6 +64,7 @@ export function useVoiceChat() {
     } catch (e) {
       console.error("Voice chat failed:", e);
       store.setPandaState("idle");
+      store.setVoiceActive(false);
       emit("panda:state", { state: "idle" });
     } finally {
       isRunning.current = false;

@@ -47,8 +47,24 @@ export function useAgent() {
                       emit("panda:state", { state: "idle" });
                     }
                   };
-                  audio.play().catch(console.error);
-                }).catch(console.error);
+                  audio.play().catch(() => {
+                    if (store.voiceActive) {
+                      store.setPandaState("idle");
+                      store.setVoiceActive(false);
+                      store.setTranscriptText(null);
+                      store.setReplyText("");
+                      emit("panda:state", { state: "idle" });
+                    }
+                  });
+                }).catch(() => {
+                  if (store.voiceActive) {
+                    store.setPandaState("idle");
+                    store.setVoiceActive(false);
+                    store.setTranscriptText(null);
+                    store.setReplyText("");
+                    emit("panda:state", { state: "idle" });
+                  }
+                });
               });
             }
           }
