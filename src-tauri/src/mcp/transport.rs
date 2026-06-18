@@ -1,26 +1,74 @@
 use anyhow::Result;
+use std::time::Duration;
 use tokio::process::{Child, Command};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::ChildStdin;
+use tokio::process::ChildStdout;
+use tokio::process::ChildStderr;
 use crate::mcp::protocol::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification};
 
 /// Manages a single MCP server via stdio subprocess.
 pub struct McpTransport {
     child: Child,
+    stdin: ChildStdin,
+    reader: BufReader<ChildStdout>,
+    stderr: Option<ChildStderr>,
     next_id: u64,
 }
 
 impl McpTransport {
     /// Spawn an MCP server process.
     pub async fn spawn(command: &str, args: &[&str]) -> Result<Self> {
-        let child = Command::new(command)
+        let command = command.trim();
+        // GUI apps on macOS have a minimal PATH — ensure node/npx are findable
+        let path = std::env::var("PATH").unwrap_or_default();
+        let extended_path = format!("/usr/local/bin:/opt/homebrew/bin:{}", path);
+
+        let mut child = Command::new(command)
             .args(args)
+            .env("PATH", &extended_path)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
             .kill_on_drop(true)
-            .spawn()?;
+            .spawn()
+            .map_err(|e| anyhow::anyhow!("Failed to spawn '{}': {}", command, e))?;
 
-        Ok(Self { child, next_id: 1 })
+        // Give process a moment; npx may need time to start
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let stderr_text = Self::read_stderr(child.stderr.as_mut()).await;
+                anyhow::bail!(
+                    "MCP 进程启动失败 ({}): {}",
+                    status,
+                    stderr_text.trim()
+                );
+            }
+            Ok(None) => {}
+            Err(e) => anyhow::bail!("Failed to check process: {}", e),
+        }
+
+        let stdin = child.stdin.take().expect("stdin not set");
+        let stdout = child.stdout.take().expect("stdout not set");
+        let stderr = child.stderr.take();
+        let reader = BufReader::new(stdout);
+
+        Ok(Self { child, stdin, reader, stderr, next_id: 1 })
+    }
+
+    async fn read_stderr(stderr_opt: Option<&mut ChildStderr>) -> String {
+        use tokio::io::AsyncReadExt;
+        if let Some(stderr) = stderr_opt {
+            let mut buf = vec![0u8; 8192];
+            match stderr.read(&mut buf).await {
+                Ok(n) if n > 0 => String::from_utf8_lossy(&buf[..n]).to_string(),
+                _ => "(no stderr output)".into(),
+            }
+        } else {
+            "(stderr not captured)".into()
+        }
     }
 
     /// Send a JSON-RPC request and read the matching response.
@@ -31,9 +79,8 @@ impl McpTransport {
         let mut line = serde_json::to_string(&request)?;
         line.push('\n');
 
-        let stdin = self.child.stdin.as_mut().expect("stdin not open");
-        stdin.write_all(line.as_bytes()).await?;
-        stdin.flush().await?;
+        self.stdin.write_all(line.as_bytes()).await?;
+        self.stdin.flush().await?;
 
         self.read_response(id).await
     }
@@ -48,20 +95,40 @@ impl McpTransport {
         let mut line = serde_json::to_string(&notification)?;
         line.push('\n');
 
-        let stdin = self.child.stdin.as_mut().expect("stdin not open");
-        stdin.write_all(line.as_bytes()).await?;
-        stdin.flush().await?;
+        self.stdin.write_all(line.as_bytes()).await?;
+        self.stdin.flush().await?;
         Ok(())
     }
 
     async fn read_response(&mut self, expected_id: u64) -> Result<serde_json::Value> {
-        let stdout = self.child.stdout.as_mut().expect("stdout not open");
-        let reader = BufReader::new(stdout);
-        let mut lines = reader.lines();
+        let start = std::time::Instant::now();
+        let timeout = Duration::from_secs(15);
 
-        while let Some(line) = lines.next_line().await? {
+        loop {
+            // Overall timeout to prevent infinite hangs
+            if start.elapsed() > timeout {
+                anyhow::bail!("MCP read_response timeout ({}s) for id={}", timeout.as_secs(), expected_id);
+            }
+
+            // Read with per-iteration timeout so we can abort hung servers
+            let mut line = String::new();
+            let read_fut = self.reader.read_line(&mut line);
+            let n = match tokio::time::timeout(Duration::from_millis(100), read_fut).await {
+                Ok(Ok(n)) => n,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_timeout) => continue, // retry — overall timeout checked above
+            };
+            if n == 0 {
+                let stderr_text = if let Ok(Some(_status)) = self.child.try_wait() {
+                    Self::read_stderr(self.stderr.as_mut()).await
+                } else {
+                    "(process still running)".into()
+                };
+                anyhow::bail!("MCP stdout closed. stderr: {}", stderr_text.trim());
+            }
+            let line = line.trim().to_string();
             if line.is_empty() { continue; }
-            // Try parsing as response first
+
             if let Ok(response) = serde_json::from_str::<JsonRpcResponse>(&line) {
                 if response.id == Some(expected_id) {
                     if let Some(err) = response.error {
@@ -69,15 +136,12 @@ impl McpTransport {
                     }
                     return Ok(response.result.unwrap_or(serde_json::Value::Null));
                 }
-                // Response for different id — keep reading
                 continue;
             }
-            // Check for notification (ignore)
             if let Ok(_notification) = serde_json::from_str::<JsonRpcNotification>(&line) {
                 continue;
             }
         }
-        anyhow::bail!("MCP transport: child process exited or stdout closed")
     }
 
     /// Initialize MCP handshake.
@@ -92,7 +156,5 @@ impl McpTransport {
 }
 
 impl Drop for McpTransport {
-    fn drop(&mut self) {
-        // kill_on_drop handles process cleanup
-    }
+    fn drop(&mut self) {}
 }

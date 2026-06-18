@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePandaStore } from "../../stores/pandaStore";
-import { getConfig, setConfig, testApiConnection, listMcpServers, addMcpServer, deleteMcpServer } from "../../lib/tauri";
-import type { McpServer } from "../../lib/tauri";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { getConfig, setConfig, testApiConnection } from "../../lib/tauri";
+import { FileText } from "lucide-react";
 
 export function ConfigPanel() {
   const open = usePandaStore((s) => s.configOpen);
@@ -20,13 +19,12 @@ export function ConfigPanel() {
   const [embModel, setEmbModel] = useState("");
   const [kbEnabled, setKbEnabled] = useState(false);
 
-  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
-  const [newMcpName, setNewMcpName] = useState("");
-  const [newMcpCommand, setNewMcpCommand] = useState("");
-  const [newMcpArgs, setNewMcpArgs] = useState("");
-
   const voiceEnabled = usePandaStore((s) => s.voiceEnabled);
   const setVoiceEnabledStore = usePandaStore((s) => s.setVoiceEnabled);
+
+  const [sttBaseUrl, setSttBaseUrl] = useState("");
+  const [sttApiKey, setSttApiKey] = useState("");
+  const [sttModel, setSttModel] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -37,13 +35,9 @@ export function ConfigPanel() {
       getConfig("embedding_api_key").then((v) => setEmbApiKey(v || ""));
       getConfig("embedding_model").then((v) => setEmbModel(v || "text-embedding-ada-002"));
       getConfig("knowledge_base_enabled").then((v) => setKbEnabled(v === "true"));
-    }
-  }, [open]);
-
-  // Load MCP servers when panel opens
-  useEffect(() => {
-    if (open) {
-      listMcpServers().then(setMcpServers).catch(console.error);
+      getConfig("stt_base_url").then((v) => setSttBaseUrl(v || ""));
+      getConfig("stt_api_key").then((v) => setSttApiKey(v || ""));
+      getConfig("stt_model").then((v) => setSttModel(v || ""));
     }
   }, [open]);
 
@@ -55,6 +49,9 @@ export function ConfigPanel() {
     await setConfig("embedding_api_key", embApiKey);
     await setConfig("embedding_model", embModel);
     await setConfig("knowledge_base_enabled", kbEnabled ? "true" : "false");
+    await setConfig("stt_base_url", sttBaseUrl);
+    await setConfig("stt_api_key", sttApiKey);
+    await setConfig("stt_model", sttModel);
     setOpen(false);
   };
 
@@ -151,81 +148,11 @@ export function ConfigPanel() {
             </button>
           </div>
 
-          {/* MCP Server management */}
-          <div className="border-t border-white/10 pt-4 mt-4 mb-4">
-            <h3 className="text-white/70 text-sm font-medium mb-3">MCP 服务器</h3>
-
-            {mcpServers.length === 0 ? (
-              <p className="text-white/30 text-sm mb-3">暂无 MCP 服务器</p>
-            ) : (
-              <div className="space-y-2 mb-3">
-                {mcpServers.map((srv) => (
-                  <div key={srv.id} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-white/80 text-sm truncate">{srv.name}</div>
-                      <div className="text-white/40 text-xs truncate">{srv.command} {srv.args}</div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        deleteMcpServer(srv.id).then(() =>
-                          setMcpServers((prev) => prev.filter((s) => s.id !== srv.id))
-                        ).catch(console.error);
-                      }}
-                      className="text-white/30 hover:text-red-400 p-1 shrink-0"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add new MCP server form */}
-            <div className="space-y-2">
-              <input
-                value={newMcpName}
-                onChange={(e) => setNewMcpName(e.target.value)}
-                className="w-full bg-white/5 text-white rounded-lg px-3 py-1.5 outline-none text-sm"
-                placeholder="名称 (如 filesystem)"
-              />
-              <input
-                value={newMcpCommand}
-                onChange={(e) => setNewMcpCommand(e.target.value)}
-                className="w-full bg-white/5 text-white rounded-lg px-3 py-1.5 outline-none text-sm"
-                placeholder="命令 (如 npx)"
-              />
-              <input
-                value={newMcpArgs}
-                onChange={(e) => setNewMcpArgs(e.target.value)}
-                className="w-full bg-white/5 text-white rounded-lg px-3 py-1.5 outline-none text-sm"
-                placeholder="参数 (如 -y @modelcontextprotocol/server-filesystem /path)"
-              />
-              <button
-                onClick={async () => {
-                  if (!newMcpName || !newMcpCommand) return;
-                  try {
-                    const srv = await addMcpServer(newMcpName, newMcpCommand, newMcpArgs);
-                    setMcpServers((prev) => [...prev, srv]);
-                    setNewMcpName("");
-                    setNewMcpCommand("");
-                    setNewMcpArgs("");
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-                disabled={!newMcpName || !newMcpCommand}
-                className="flex items-center gap-1 w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white text-sm rounded-lg transition-colors"
-              >
-                <Plus size={14} />
-                添加服务器
-              </button>
-            </div>
-          </div>
-
           {/* Voice settings */}
           <div className="border-t border-white/10 pt-4 mt-4 mb-4">
             <h3 className="text-white/70 text-sm font-medium mb-3">语音设置</h3>
-            <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer">
+
+            <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer mb-3">
               <input
                 type="checkbox"
                 checked={voiceEnabled}
@@ -237,6 +164,38 @@ export function ConfigPanel() {
               />
               启用语音输入（麦克风按钮）
             </label>
+
+            <label className="block text-sm text-white/60 mb-1">语音识别 Base URL（留空则使用 LLM 配置）</label>
+            <input
+              value={sttBaseUrl}
+              onChange={(e) => setSttBaseUrl(e.target.value)}
+              className="w-full bg-white/5 text-white rounded-lg px-3 py-2 mb-3 outline-none text-sm"
+              placeholder={baseUrl || "https://api.openai.com/v1"}
+            />
+
+            <label className="block text-sm text-white/60 mb-1">语音识别 API Key（留空则使用 LLM Key）</label>
+            <input
+              value={sttApiKey}
+              onChange={(e) => setSttApiKey(e.target.value)}
+              type="password"
+              className="w-full bg-white/5 text-white rounded-lg px-3 py-2 mb-3 outline-none text-sm"
+              placeholder="sk-xxx"
+            />
+
+            <label className="block text-sm text-white/60 mb-1">语音识别模型（Groq 用 whisper-large-v3-turbo，OpenAI 用 whisper-1）</label>
+            <input
+              value={sttModel}
+              onChange={(e) => setSttModel(e.target.value)}
+              className="w-full bg-white/5 text-white rounded-lg px-3 py-2 outline-none text-sm"
+              placeholder="whisper-1"
+            />
+            <p className="text-yellow-400/70 text-xs mt-2 mb-3">
+              ⚠ 注意：DeepSeek 等纯文本 API 不支持语音转写。如果语音识别失败，请在
+              <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 underline mx-1"
+              >Groq</a>
+              注册免费账号获取 API Key，模型填 <code className="text-white/80">whisper-large-v3-turbo</code>。
+            </p>
           </div>
 
           {testResult === "success" && (

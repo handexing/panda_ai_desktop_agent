@@ -2,6 +2,7 @@ use tauri::{AppHandle, Emitter, State};
 use serde::Serialize;
 use tokio::sync::mpsc;
 use crate::db::{DbPool, repository, models};
+use crate::api::client;
 use crate::agent::types::{TraceStep, AgentMessage};
 
 #[derive(Serialize, Clone)]
@@ -177,4 +178,92 @@ pub async fn delete_mcp_server(
     id: String,
 ) -> Result<(), String> {
     repository::delete_mcp_server(&pool, &id)
+}
+
+#[derive(Serialize)]
+pub struct McpServerStatus {
+    pub ok: bool,
+    pub tool_count: usize,
+    pub message: String,
+}
+
+/// Transcribe audio to text via Whisper API.
+#[tauri::command]
+#[cfg(feature = "p3-agent")]
+pub async fn transcribe_audio(
+    pool: State<'_, DbPool>,
+    audio_base64: String,
+) -> Result<String, String> {
+    let base_url = repository::get_setting(&pool, "llm_base_url")?.unwrap_or_default();
+    let api_key = repository::get_setting(&pool, "llm_api_key")?.unwrap_or_default();
+    let model = repository::get_setting(&pool, "stt_model")?
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "whisper-1".into());
+
+    if base_url.is_empty() || api_key.is_empty() {
+        return Err("API 未配置".into());
+    }
+
+    client::transcribe_audio(&base_url, &api_key, &model, &audio_base64).await
+}
+
+/// Test an MCP server config — spawn, handshake, discover tools, report status.
+#[tauri::command]
+#[cfg(feature = "p3-agent")]
+pub async fn check_mcp_server(
+    command: String,
+    args: String,
+) -> Result<McpServerStatus, String> {
+    let args_list: Vec<&str> = if args.is_empty() {
+        Vec::new()
+    } else {
+        args.split(' ').collect()
+    };
+
+    let mut transport = match crate::mcp::transport::McpTransport::spawn(&command, &args_list).await {
+        Ok(t) => t,
+        Err(e) => return Ok(McpServerStatus {
+            ok: false,
+            tool_count: 0,
+            message: format!("启动失败: {}", e),
+        }),
+    };
+
+    // Wrap in a minimal client-like flow
+    let mut transport = transport;
+    match transport.initialize().await {
+        Err(e) => {
+            drop(transport);
+            Ok(McpServerStatus {
+                ok: false,
+                tool_count: 0,
+                message: format!("握手失败: {}", e),
+            })
+        }
+        Ok(_) => {
+            // Try tools/list
+            match transport.send_request("tools/list", None).await {
+                Ok(result) => {
+                    let count = result.get("tools")
+                        .and_then(|t| t.as_array())
+                        .map(|a| a.len())
+                        .unwrap_or(0);
+                    drop(transport);
+                    Ok(McpServerStatus {
+                        ok: true,
+                        tool_count: count,
+                        message: format!("可用，发现 {} 个工具", count),
+                    })
+                }
+                Err(e) => {
+                    drop(transport);
+                    Ok(McpServerStatus {
+                        ok: false,
+                        tool_count: 0,
+                        message: format!("工具发现失败: {}", e),
+                    })
+                }
+            }
+        }
+    }
 }

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { PandaState } from "../../stores/pandaStore";
 
 interface VoiceWaveProps {
@@ -6,54 +5,79 @@ interface VoiceWaveProps {
 }
 
 export function VoiceWave({ state }: VoiceWaveProps) {
-  const [bars] = useState(() => Array.from({ length: 5 }, (_, i) => i));
+  if (state !== "listening" && state !== "recording" && state !== "talking") return null;
 
-  if (state === "idle" || state === "thinking") return null;
+  const isRecording = state === "recording";
+  const isListening = state === "listening";
+  const isTalking = state === "talking";
 
-  const getAnimationClass = () => {
-    switch (state) {
-      case "listening": return "animate-wave-listening";
-      case "recording": return "animate-wave-recording";
-      case "talking":   return "animate-wave-talking";
-      default: return "";
-    }
-  };
+  const color = isRecording ? "#22c55e" : isTalking ? "#3b82f6" : "#9ca3af";
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div className="flex items-center gap-[3px]">
-        {bars.map((i) => (
-          <div
-            key={i}
-            className={`w-[3px] rounded-full transition-all duration-150 ${getAnimationClass()}`}
-            style={{
-              height: state === "listening" ? "8px" : "12px",
-              backgroundColor: state === "recording" ? "#22c55e"
-                            : state === "talking" ? "#3b82f6"
-                            : "#6b7280",
-              animationDelay: `${i * 0.1}s`,
-              animationDuration: state === "recording" ? "0.4s" : "1.2s",
-            }}
-          />
-        ))}
-      </div>
+      {/* Center glow */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "80px",
+          height: "80px",
+          background: `radial-gradient(circle, ${color}22 0%, ${color}11 40%, transparent 70%)`,
+          animation: `glow-pulse ${isListening ? 2 : isRecording ? 0.6 : 1.2}s ease-in-out infinite`,
+        }}
+      />
+
+      {/* Wave rings */}
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: "40px",
+            height: "40px",
+            border: `2px solid ${color}`,
+            opacity: 0,
+            animation: `wave-ring-${state} ${isListening ? 2.5 : isRecording ? 0.8 : 1.5}s ease-out ${i * (isRecording ? 0.2 : 0.4)}s infinite`,
+          }}
+        />
+      ))}
+
+      {/* Rotating gradient ring for recording */}
+      {isRecording && (
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: "70px",
+            height: "70px",
+            border: "2px solid transparent",
+            borderTopColor: color,
+            borderRightColor: color,
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
+      )}
+
       <style>{`
-        @keyframes wave-recording {
-          0%, 100% { transform: scaleY(0.5); }
-          50% { transform: scaleY(2.0); }
+        @keyframes glow-pulse {
+          0%, 100% { transform: scale(0.8); opacity: 0.4; }
+          50% { transform: scale(1.1); opacity: 0.8; }
         }
-        @keyframes wave-listening {
-          0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
-          50% { transform: scaleY(1.0); opacity: 1; }
+        @keyframes wave-ring-listening {
+          0%   { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(4); opacity: 0; }
         }
-        @keyframes wave-talking {
-          0%, 100% { transform: scaleY(0.6); }
-          30% { transform: scaleY(1.2); }
-          60% { transform: scaleY(0.8); }
+        @keyframes wave-ring-recording {
+          0%   { transform: scale(0.8); opacity: 0.7; }
+          100% { transform: scale(3.5); opacity: 0; }
         }
-        .animate-wave-recording { animation: wave-recording 0.4s ease-in-out infinite; }
-        .animate-wave-listening { animation: wave-listening 1.2s ease-in-out infinite; }
-        .animate-wave-talking { animation: wave-talking 0.8s ease-in-out infinite; }
+        @keyframes wave-ring-talking {
+          0%   { transform: scale(0.9); opacity: 0.4; }
+          60%  { transform: scale(2.5); opacity: 0.1; }
+          100% { transform: scale(3); opacity: 0; }
+        }
+        @keyframes spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
       `}</style>
     </div>
   );

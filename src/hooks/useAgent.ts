@@ -10,6 +10,14 @@ export function useAgent() {
       "agent:trace",
       (event) => {
         const store = usePandaStore.getState();
+
+        // Skip done/error processing during voice chat — useVoiceChat handles it
+        if (store.voiceActive) {
+          if (event.payload.step.type === "done" || event.payload.step.type === "error") {
+            return;
+          }
+        }
+
         store.addTraceStep(event.payload.step);
 
         if (event.payload.step.type === "done") {
@@ -93,6 +101,7 @@ export function useAgent() {
       "agent:error",
       (event) => {
         const store = usePandaStore.getState();
+        if (store.voiceActive) return; // useVoiceChat handles this
         const detail = event.payload.step.detail as { message: string } | undefined;
         const msg = detail?.message || "Agent 错误";
         store.addMessage({

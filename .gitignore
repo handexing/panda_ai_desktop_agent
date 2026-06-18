@@ -3,3 +3,6 @@ dist/
 target/
 .env
 *.local
+/docs/
+/.claude/
+/doc/

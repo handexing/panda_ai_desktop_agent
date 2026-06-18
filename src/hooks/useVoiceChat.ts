@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { emit } from "@tauri-apps/api/event";
 import { usePandaStore } from "../stores/pandaStore";
 import { streamAgentChat, createConversation } from "../lib/tauri";
+import type { TraceStep } from "../lib/tauri";
 
 interface VoiceTranscriptEvent {
   text: string;
@@ -25,6 +26,7 @@ export function useVoiceChat() {
       store.setVoiceActive(true);
       store.setTranscriptText(null);
       store.setReplyText("");
+      store.setErrorMessage(null);
       store.setPandaState("listening");
       emit("panda:state", { state: "listening" });
 
@@ -63,9 +65,11 @@ export function useVoiceChat() {
 
     } catch (e) {
       console.error("Voice chat failed:", e);
-      store.setPandaState("idle");
+      const msg = typeof e === "string" ? e : "语音对话失败";
+      store.setErrorMessage(msg);
+      store.setPandaState("error");
       store.setVoiceActive(false);
-      emit("panda:state", { state: "idle" });
+      emit("panda:state", { state: "error", message: msg });
     } finally {
       isRunning.current = false;
     }
@@ -99,6 +103,132 @@ export function useVoiceChat() {
     return () => {
       unlisten1.then((fn) => fn());
       unlisten2.then((fn) => fn());
+    };
+  }, []);
+
+  // Listen for agent trace/error events (needed because useAgent is in ChatWindow,
+  // which is a separate Tauri window — not mounted during voice chat)
+  useEffect(() => {
+    const unlistenTrace = listen<{ step: TraceStep }>(
+      "agent:trace",
+      (event) => {
+        const store = usePandaStore.getState();
+        if (!store.voiceActive) return;
+
+        if (event.payload.step.type === "done") {
+          const detail = event.payload.step.detail as { text: string } | undefined;
+          const text = detail?.text || "";
+          // Add AI response to store for chat window to show
+          store.addMessage({
+            id: crypto.randomUUID(),
+            conversation_id: store.currentConversationId || "",
+            role: "assistant",
+            content: text,
+            created_at: new Date().toISOString(),
+          });
+          store.setIsStreaming(false);
+          store.clearTraceSteps();
+
+          // Open/focus chat window so user sees the conversation
+          import("@tauri-apps/api/webviewWindow").then(({ WebviewWindow }) => {
+            WebviewWindow.getByLabel("chat").then((existing) => {
+              if (existing) { existing.setFocus(); return; }
+              const convId = voiceConversationId.current || store.currentConversationId || "";
+              new WebviewWindow("chat", {
+                url: `/?view=chat&convId=${encodeURIComponent(convId)}`,
+                title: "Panda AI",
+                width: 600, height: 600, center: true,
+                decorations: false, transparent: true, resizable: true,
+              });
+            });
+          });
+
+          if (text) {
+            import("../lib/tauri").then(({ ttsSpeak }) => {
+              store.setPandaState("talking");
+              emit("panda:state", { state: "talking" });
+              ttsSpeak(text).then((audioUrl) => {
+                const audio = new Audio(audioUrl);
+                audio.onended = () => {
+                  store.setPandaState("idle");
+                  store.setVoiceActive(false);
+                  store.setTranscriptText(null);
+                  store.setReplyText("");
+                  emit("panda:state", { state: "idle" });
+                };
+                audio.play().catch(() => {
+                  store.setPandaState("idle");
+                  store.setVoiceActive(false);
+                  store.setTranscriptText(null);
+                  store.setReplyText("");
+                  emit("panda:state", { state: "idle" });
+                });
+              }).catch(() => {
+                store.setPandaState("idle");
+                store.setVoiceActive(false);
+                store.setTranscriptText(null);
+                store.setReplyText("");
+                emit("panda:state", { state: "idle" });
+              });
+            });
+          } else {
+            store.setPandaState("idle");
+            store.setVoiceActive(false);
+            store.setTranscriptText(null);
+            store.setReplyText("");
+            emit("panda:state", { state: "idle" });
+          }
+        }
+
+        if (event.payload.step.type === "error") {
+          const detail = event.payload.step.detail as { message: string } | undefined;
+          const msg = detail?.message || "未知错误";
+          store.addMessage({
+            id: crypto.randomUUID(),
+            conversation_id: store.currentConversationId || "",
+            role: "assistant",
+            content: `❌ ${msg}`,
+            created_at: new Date().toISOString(),
+          });
+          store.setIsStreaming(false);
+          store.clearTraceSteps();
+          store.setPandaState("idle");
+          store.setVoiceActive(false);
+          store.setTranscriptText(null);
+          store.setReplyText("");
+          emit("panda:state", { state: "error", message: msg });
+        }
+      },
+    );
+
+    const unlistenError = listen<{ step: TraceStep }>(
+      "agent:error",
+      (event) => {
+        const store = usePandaStore.getState();
+        if (!store.voiceActive) return;
+
+        const detail = event.payload.step.detail as { message: string } | undefined;
+        const msg = detail?.message || "Agent 错误";
+        store.addMessage({
+          id: crypto.randomUUID(),
+          conversation_id: store.currentConversationId || "",
+          role: "assistant",
+          content: `❌ ${msg}`,
+          created_at: new Date().toISOString(),
+        });
+        store.setIsStreaming(false);
+        store.clearTraceSteps();
+        store.setPandaState("idle");
+        store.setVoiceActive(false);
+        store.setTranscriptText(null);
+        store.setReplyText("");
+        emit("panda:state", { state: "error", message: msg });
+      },
+    );
+
+    return () => {
+      unlistenTrace.then((fn) => fn());
+      unlistenError.then((fn) => fn());
     };
   }, []);
 

@@ -288,7 +288,7 @@ pub async fn voice_chat(
         let engine = VoiceEngine::new();
         let intr = interrupt.clone();
         let result = tokio::task::spawn_blocking(move || {
-            engine.record_until_silence(intr, 600, 30)
+            engine.record_until_silence(intr, 1200, 30)
         }).await;
 
         match result {
@@ -324,12 +324,15 @@ pub async fn voice_chat(
     let api_key = stt_key.filter(|s| !s.is_empty())
         .or_else(|| llm_key.filter(|s| !s.is_empty()))
         .unwrap_or_default();
+    let model = crate::db::repository::get_setting(&pool, "stt_model")?
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "whisper-1".into());
 
     if base_url.is_empty() || api_key.is_empty() {
         return Err("STT API 未配置".into());
     }
 
-    let text = crate::api::client::transcribe_audio(&base_url, &api_key, &b64).await?;
+    let text = crate::api::client::transcribe_audio(&base_url, &api_key, &model, &b64).await?;
 
     let _ = app.emit("voice:transcript", VoiceTranscriptEvent {
         text: text.clone(),

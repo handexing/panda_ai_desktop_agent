@@ -11,7 +11,7 @@ import { ConfigPanel } from "../config/ConfigPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
 import { KnowledgePanel } from "../knowledge/KnowledgePanel";
 import { usePandaStore } from "../../stores/pandaStore";
-import { createConversation } from "../../lib/tauri";
+import { createConversation, getMessages } from "../../lib/tauri";
 
 const isMac = navigator.userAgent.includes("Mac");
 
@@ -91,7 +91,11 @@ export function ChatWindow() {
     const params = new URLSearchParams(window.location.search);
     const convId = params.get("convId");
     if (convId) {
-      usePandaStore.getState().setCurrentConversationId(convId);
+      const store = usePandaStore.getState();
+      store.setCurrentConversationId(convId);
+      getMessages(convId).then((msgs) => {
+        usePandaStore.getState().setMessages(msgs);
+      }).catch(console.error);
       return;
     }
     const already = usePandaStore.getState().currentConversationId;
@@ -253,10 +257,12 @@ export function ChatWindow() {
         </div>
       </div>
 
-      {/* Trace + Chat messages + input */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      {/* Chat area + Trace sidebar */}
+      <div className="flex-1 min-h-0 flex">
+        <div className="flex-1 min-w-0 flex flex-col">
+          <ChatPanel />
+        </div>
         <TraceBar />
-        <ChatPanel />
       </div>
 
       {/* Modals */}

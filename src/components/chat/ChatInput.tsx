@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { emit } from "@tauri-apps/api/event";
-import { Mic, MicOff } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Mic, Loader2 } from "lucide-react";
 import { usePandaStore } from "../../stores/pandaStore";
 import { createConversation, streamAgentChat } from "../../lib/tauri";
 
@@ -10,31 +11,8 @@ export function ChatInput() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isStreaming = usePandaStore((s) => s.isStreaming);
   const setIsStreaming = usePandaStore((s) => s.setIsStreaming);
-  const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const voiceEnabled = usePandaStore((s) => s.voiceEnabled);
-
-  const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
-    recognition.lang = "zh-CN";
-    recognition.interimResults = false;
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setText(transcript);
-      setListening(false);
-    };
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
-    setListening(true);
-    recognition.start();
-  };
-
-  useEffect(() => {
-    if (!isStreaming && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isStreaming]);
 
   const getOrCreateConversation = async (): Promise<string | null> => {
     let id = usePandaStore.getState().currentConversationId;
@@ -51,6 +29,46 @@ export function ChatInput() {
       setCreating(false);
     }
   };
+
+  const toggleRecording = async () => {
+    if (transcribing || isStreaming) return;
+
+    setTranscribing(true);
+    try {
+      // voice_chat: records with VAD, transcribes via STT, returns text
+      const result: string = await invoke("voice_chat");
+
+      if (!result || !result.trim()) return;
+
+      // Auto-send the transcribed text
+      const convId = await getOrCreateConversation();
+      if (!convId) return;
+
+      const store = usePandaStore.getState();
+      store.addMessage({
+        id: crypto.randomUUID(),
+        conversation_id: convId,
+        role: "user",
+        content: result,
+        created_at: new Date().toISOString(),
+      });
+      setIsStreaming(true);
+      emit("panda:state", { state: "thinking" });
+
+      await streamAgentChat(convId, result);
+    } catch (e) {
+      console.error("Voice input failed:", e);
+      alert("语音输入失败: " + (typeof e === "string" ? e : ""));
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isStreaming && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isStreaming]);
 
   const handleSend = async () => {
     const msg = text.trim();
@@ -98,14 +116,14 @@ export function ChatInput() {
       />
       {voiceEnabled && (
         <button
-          onClick={startListening}
-          disabled={listening}
+          onClick={toggleRecording}
+          disabled={transcribing}
           className={`p-2 rounded-lg transition-colors ${
-            listening ? "text-red-400 bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/10"
+            transcribing ? "text-red-400 animate-pulse bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/10"
           }`}
           title="语音输入"
         >
-          {listening ? <MicOff size={16} /> : <Mic size={16} />}
+          {transcribing ? <Loader2 size={16} className="animate-spin" /> : <Mic size={16} />}
         </button>
       )}
       <button

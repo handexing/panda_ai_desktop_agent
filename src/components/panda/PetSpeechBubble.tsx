@@ -76,9 +76,9 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
     return (
       <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
            style={{ animation: "fadeIn 0.2s ease-out" }}>
-        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-1.5
-                        max-w-[220px] text-center backdrop-blur-sm
-                        border border-green-500/30">
+        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-2
+                        max-w-[260px] text-left leading-relaxed backdrop-blur-sm
+                        border border-green-500/30 break-words">
           🎤 {transcriptText}
           <span className="animate-pulse">|</span>
         </div>
@@ -94,9 +94,9 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
     return (
       <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
            style={{ animation: "fadeIn 0.2s ease-out" }}>
-        <div className="bg-gray-800/90 text-green-400 text-xs rounded-lg px-3 py-1.5
-                        max-w-[240px] text-center backdrop-blur-sm
-                        border border-blue-500/30">
+        <div className="bg-gray-800/90 text-green-400 text-xs rounded-lg px-3 py-2
+                        max-w-[280px] text-left leading-relaxed backdrop-blur-sm
+                        border border-blue-500/30 break-words">
           💬 {replyText}
           {state === "thinking" && <span className="animate-pulse">|</span>}
         </div>
@@ -111,7 +111,7 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
   if (speechText) {
     return (
       <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ animation: "fadeIn 0.2s ease-out" }}>
-        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-1.5 max-w-[240px] text-center backdrop-blur-sm whitespace-nowrap">
+        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-2 max-w-[240px] text-center leading-relaxed backdrop-blur-sm">
           {speechText}
         </div>
         <div className="flex justify-center -mt-px">
@@ -125,7 +125,7 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
 
   return (
     <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ animation: "fadeIn 0.2s ease-out" }}>
-      <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-1.5 whitespace-nowrap backdrop-blur-sm">
+      <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-2 backdrop-blur-sm">
         <span className="mr-1">{bubble.emoji}</span>
         {bubble.text}
       </div>

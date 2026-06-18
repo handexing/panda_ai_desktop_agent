@@ -392,3 +392,67 @@ pub async fn agent_chat(
         .await
         .map_err(|e| format!("Failed to parse agent response: {}", e))
 }
+
+/// Transcribe audio to text via OpenAI-compatible Whisper endpoint.
+pub async fn transcribe_audio(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    audio_base64: &str,
+) -> Result<String, String> {
+    // Build the URL — handle three cases:
+    // 1. base already contains full path (e.g. "https://api.groq.com/openai/v1/audio/transcriptions")
+    // 2. base ends with /v1 (e.g. "https://api.groq.com/openai/v1")
+    // 3. bare host (e.g. "https://api.openai.com")
+    let base = base_url.trim_end_matches('/');
+    let url = if base.contains("/audio/transcriptions") {
+        base.to_string()
+    } else if base.ends_with("/v1") {
+        format!("{}/audio/transcriptions", base)
+    } else {
+        format!("{}/v1/audio/transcriptions", base)
+    };
+
+    let client = Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let audio_bytes = base64::Engine::decode(
+        &base64::engine::general_purpose::STANDARD,
+        audio_base64,
+    ).map_err(|e| format!("Base64 decode error: {}", e))?;
+
+    let form = reqwest::multipart::Form::new()
+        .text("model", model.to_string())
+        .part(
+            "file",
+            reqwest::multipart::Part::bytes(audio_bytes)
+                .file_name("audio.wav")
+                .mime_str("audio/wav").map_err(|e| e.to_string())?,
+        );
+
+    let response = client
+        .post(&url)
+        .header(header::AUTHORIZATION, format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("语音识别请求失败 ({}): {}", url, e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let err = response.text().await.unwrap_or_default();
+        return Err(format!("语音识别 API {}，请求地址: {}，错误: {}", status, url, err));
+    }
+
+    #[derive(Deserialize)]
+    struct TranscriptionResponse {
+        text: String,
+    }
+
+    let result: TranscriptionResponse = response.json().await
+        .map_err(|e| format!("语音识别结果解析失败: {}", e))?;
+
+    Ok(result.text)
+}
