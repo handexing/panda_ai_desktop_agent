@@ -14,6 +14,7 @@ mod mcp;
 mod memory;
 #[cfg(feature = "p4-graph")]
 mod graph;
+mod voice;
 
 use std::path::PathBuf;
 use tauri::Manager;
@@ -35,7 +36,6 @@ pub fn run() {
             db::run_migrations(&pool)
                 .expect("Failed to run database migrations");
             app.manage(pool);
-
             // Edge snap: snap to screen edges when dragged within 15px
             let window = app.get_webview_window("panda").unwrap();
             let window_clone = window.clone();
@@ -111,6 +111,7 @@ pub fn run() {
             commands::agent_cmds::check_mcp_server,
             #[cfg(feature = "p3-agent")]
             commands::agent_cmds::transcribe_audio,
+            voice::voice_chat,
             #[cfg(feature = "p4-graph")]
             commands::graph_cmds::get_graph,
             #[cfg(feature = "p4-graph")]

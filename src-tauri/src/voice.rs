@@ -260,3 +260,69 @@ impl VoiceEngine {
         Ok((result, sample_rate))
     }
 }
+
+use base64::Engine;
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
+use crate::db::DbPool;
+
+#[derive(Clone, Serialize)]
+pub struct VoiceStateEvent {
+    pub state: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct VoiceTranscriptEvent {
+    pub text: String,
+    pub is_final: bool,
+}
+
+#[tauri::command]
+pub async fn voice_chat(
+    app: AppHandle,
+    pool: State<'_, DbPool>,
+) -> Result<String, String> {
+    let _ = app.emit("voice:state", VoiceStateEvent { state: "listening".into() });
+
+    let engine = VoiceEngine::new();
+    let interrupt = Arc::new(AtomicBool::new(false));
+
+    // 1. Recording + VAD
+    let _ = app.emit("voice:state", VoiceStateEvent { state: "recording".into() });
+    let (samples, sample_rate) = engine.record_until_silence(
+        interrupt.clone(),
+        600,
+        30,
+    )?;
+
+    // 2. Encode to WAV
+    let wav_bytes = encode_wav(&samples, sample_rate);
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&wav_bytes);
+
+    // 3. STT
+    let _ = app.emit("voice:state", VoiceStateEvent { state: "thinking".into() });
+    let stt_base = crate::db::repository::get_setting(&pool, "stt_base_url")?;
+    let stt_key = crate::db::repository::get_setting(&pool, "stt_api_key")?;
+    let llm_base = crate::db::repository::get_setting(&pool, "llm_base_url")?;
+    let llm_key = crate::db::repository::get_setting(&pool, "llm_api_key")?;
+
+    let base_url = stt_base.filter(|s| !s.is_empty())
+        .or_else(|| llm_base.filter(|s| !s.is_empty()))
+        .unwrap_or_default();
+    let api_key = stt_key.filter(|s| !s.is_empty())
+        .or_else(|| llm_key.filter(|s| !s.is_empty()))
+        .unwrap_or_default();
+
+    if base_url.is_empty() || api_key.is_empty() {
+        return Err("STT API 未配置".into());
+    }
+
+    let text = crate::api::client::transcribe_audio(&base_url, &api_key, &b64).await?;
+
+    let _ = app.emit("voice:transcript", VoiceTranscriptEvent {
+        text: text.clone(),
+        is_final: true,
+    });
+
+    Ok(text)
+}
