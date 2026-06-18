@@ -101,5 +101,21 @@ export function useVoiceChat() {
     };
   }, []);
 
+  // Global shortcut: Option+Space (Mac) / Alt+Space (Windows)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.altKey || e.metaKey) && e.code === "Space") {
+        e.preventDefault();
+        if (isRunning.current) {
+          stopVoiceChat();
+        } else {
+          startVoiceChat();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [startVoiceChat, stopVoiceChat]);
+
   return { startVoiceChat, stopVoiceChat };
 }
