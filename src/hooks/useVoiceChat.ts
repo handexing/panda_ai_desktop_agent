@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { emit } from "@tauri-apps/api/event";
 import { usePandaStore } from "../stores/pandaStore";
-import { streamAgentChat, createConversation, ttsSpeak } from "../lib/tauri";
+import { streamAgentChat, createConversation } from "../lib/tauri";
 
 interface VoiceTranscriptEvent {
   text: string;
