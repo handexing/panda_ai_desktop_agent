@@ -266,6 +266,10 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 use crate::db::DbPool;
 
+/// Global interrupt signal for cancel_voice_chat.
+/// Stores a reference to the currently active recording's interrupt flag.
+static CURRENT_INTERRUPT: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
+
 #[derive(Clone, Serialize)]
 pub struct VoiceStateEvent {
     pub state: String,
@@ -289,11 +293,16 @@ pub async fn voice_chat(
 
     // 1. Recording + VAD
     let _ = app.emit("voice:state", VoiceStateEvent { state: "recording".into() });
-    let (samples, sample_rate) = engine.record_until_silence(
-        interrupt.clone(),
-        600,
-        30,
-    )?;
+    let (samples, sample_rate) = {
+        *CURRENT_INTERRUPT.lock().unwrap() = Some(interrupt.clone());
+        let result = engine.record_until_silence(
+            interrupt.clone(),
+            600,
+            30,
+        );
+        *CURRENT_INTERRUPT.lock().unwrap() = None;
+        result?
+    };
 
     // 2. Encode to WAV
     let wav_bytes = encode_wav(&samples, sample_rate);
@@ -325,4 +334,32 @@ pub async fn voice_chat(
     });
 
     Ok(text)
+}
+
+/// Split text into sentences by Chinese/English punctuation.
+pub fn split_sentences(text: &str) -> Vec<String> {
+    let mut sentences = Vec::new();
+    let mut current = String::new();
+    for ch in text.chars() {
+        current.push(ch);
+        if matches!(ch, '。' | '！' | '？' | '；' | '\n') {
+            let s = current.trim().to_string();
+            if !s.is_empty() {
+                sentences.push(s);
+            }
+            current.clear();
+        }
+    }
+    if !current.trim().is_empty() {
+        sentences.push(current.trim().to_string());
+    }
+    sentences
+}
+
+#[tauri::command]
+pub async fn cancel_voice_chat() -> Result<(), String> {
+    if let Some(ref interrupt) = *CURRENT_INTERRUPT.lock().unwrap() {
+        interrupt.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    Ok(())
 }

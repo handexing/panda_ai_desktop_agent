@@ -112,6 +112,7 @@ pub fn run() {
             #[cfg(feature = "p3-agent")]
             commands::agent_cmds::transcribe_audio,
             voice::voice_chat,
+            voice::cancel_voice_chat,
             #[cfg(feature = "p4-graph")]
             commands::graph_cmds::get_graph,
             #[cfg(feature = "p4-graph")]
