@@ -3,7 +3,10 @@ import type { Conversation, Message, TraceStep } from "../lib/tauri";
 
 export type PandaState =
   | "idle"
+  | "listening"    // 新增 - 等待语音
+  | "recording"    // 新增 - 录音中
   | "thinking"
+  | "talking"      // 新增 - TTS 播报中
   | "error"
   | "coffee"
   | "flipbook"
@@ -69,6 +72,16 @@ interface PandaStore {
   // Voice
   voiceEnabled: boolean;
   setVoiceEnabled: (v: boolean) => void;
+
+  // Voice chat
+  transcriptText: string | null;
+  replyText: string;
+  voiceActive: boolean;
+  setTranscriptText: (text: string | null) => void;
+  appendTranscriptText: (text: string) => void;
+  setReplyText: (text: string) => void;
+  appendReplyText: (text: string) => void;
+  setVoiceActive: (v: boolean) => void;
 }
 
 export const usePandaStore = create<PandaStore>((set) => ({
@@ -126,4 +139,16 @@ export const usePandaStore = create<PandaStore>((set) => ({
   // Voice
   voiceEnabled: true,
   setVoiceEnabled: (v) => set({ voiceEnabled: v }),
+
+  // Voice chat
+  transcriptText: null,
+  replyText: "",
+  voiceActive: false,
+  setTranscriptText: (text) => set({ transcriptText: text }),
+  appendTranscriptText: (text) =>
+    set((s) => ({ transcriptText: (s.transcriptText || "") + text })),
+  setReplyText: (text) => set({ replyText: text }),
+  appendReplyText: (text) =>
+    set((s) => ({ replyText: s.replyText + text })),
+  setVoiceActive: (v) => set({ voiceActive: v }),
 }));
