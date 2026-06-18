@@ -7,12 +7,15 @@ const STATE_BUBBLES: Record<
   { text: string; emoji: string } | null
 > = {
   idle: null,
+  listening: { text: "我在听~", emoji: "🎤" },
+  recording: { text: "录音中", emoji: "🔴" },
   coffee: { text: "喝咖啡中", emoji: "☕" },
   flipbook: { text: "摸鱼中", emoji: "📖" },
   type: { text: "写代码中", emoji: "💻" },
   thinking: { text: "思考中...", emoji: "🤔" },
   sleep: { text: "Zzz...", emoji: "💤" },
   talk: { text: "说话中", emoji: "💬" },
+  talking: { text: "说话中", emoji: "💬" },
   raisepaw: { text: "嗨~", emoji: "🙋" },
   happy: { text: "好开心", emoji: "😊" },
   angry: { text: "生气了", emoji: "😠" },
@@ -40,6 +43,8 @@ interface PetSpeechBubbleProps {
 
 export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
   const speechText = usePandaStore((s) => s.speechText);
+  const transcriptText = usePandaStore((s) => s.transcriptText);
+  const replyText = usePandaStore((s) => s.replyText);
   const [displayState, setDisplayState] = useState<PandaState | null>(
     STATE_BUBBLES[state] ? state : null,
   );
@@ -63,6 +68,44 @@ export function PetSpeechBubble({ state }: PetSpeechBubbleProps) {
   }, [state]);
 
   const bubble = displayState ? STATE_BUBBLES[displayState] : null;
+
+  // Priority: speechText(interaction) > transcriptText(transcription) > replyText(AI reply) > state(default bubble)
+
+  // Recording transcription bubble
+  if (transcriptText && (state === "recording" || state === "listening")) {
+    return (
+      <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+           style={{ animation: "fadeIn 0.2s ease-out" }}>
+        <div className="bg-gray-800/90 text-white text-xs rounded-lg px-3 py-1.5
+                        max-w-[220px] text-center backdrop-blur-sm
+                        border border-green-500/30">
+          🎤 {transcriptText}
+          <span className="animate-pulse">|</span>
+        </div>
+        <div className="flex justify-center -mt-px">
+          <div className="w-2 h-2 bg-gray-800/90 rotate-45" />
+        </div>
+      </div>
+    );
+  }
+
+  // AI reply bubble
+  if (replyText && (state === "talking" || state === "thinking")) {
+    return (
+      <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+           style={{ animation: "fadeIn 0.2s ease-out" }}>
+        <div className="bg-gray-800/90 text-green-400 text-xs rounded-lg px-3 py-1.5
+                        max-w-[240px] text-center backdrop-blur-sm
+                        border border-blue-500/30">
+          💬 {replyText}
+          {state === "thinking" && <span className="animate-pulse">|</span>}
+        </div>
+        <div className="flex justify-center -mt-px">
+          <div className="w-2 h-2 bg-gray-800/90 rotate-45" />
+        </div>
+      </div>
+    );
+  }
 
   // Show dynamic speechText if set, otherwise show state bubble
   if (speechText) {
