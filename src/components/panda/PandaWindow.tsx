@@ -8,12 +8,15 @@ import { PetSpeechBubble } from "./PetSpeechBubble";
 import { RadialMenu } from "./RadialMenu";
 import { useFileDrop } from "../../hooks/useFileDrop";
 import { usePandaEvents } from "../../hooks/usePandaEvents";
+import { useVoiceChat } from "../../hooks/useVoiceChat";
+import { VoiceWave } from "./VoiceWave";
 
 export function PandaWindow() {
   const pandaState = usePandaStore((s) => s.pandaState);
   const errorMessage = usePandaStore((s) => s.errorMessage);
-  const menuWasOpenRef = useRef(false);
+  const voiceActive = usePandaStore((s) => s.voiceActive);
   const [menuVisible, setMenuVisible] = useState(false);
+  const { startVoiceChat, stopVoiceChat } = useVoiceChat();
 
   useFileDrop();
   usePandaEvents();
@@ -142,6 +145,16 @@ export function PandaWindow() {
     usePandaStore.getState().setSpeechText(null);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && voiceActive) {
+        stopVoiceChat();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [voiceActive, stopVoiceChat]);
+
   const radialMenuItems = [
     { icon: <PawPrint size={18} />, label: "互动", action: interact },
     { icon: <MessageCircle size={18} />, label: "聊天", action: openChatWindow },
@@ -151,21 +164,32 @@ export function PandaWindow() {
   ];
 
   const handleMenuClose = useCallback(() => {
-    menuWasOpenRef.current = false;
     setMenuVisible(false);
   }, []);
 
-  // Click to open menu (drag is handled natively by data-tauri-drag-region)
+  const lastClickRef = useRef(0);
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
   const handleClick = useCallback(() => {
-    const wasOpen = menuWasOpenRef.current;
-    if (wasOpen) {
-      menuWasOpenRef.current = false;
-      setMenuVisible(false);
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickRef.current;
+    lastClickRef.current = now;
+
+    if (timeSinceLastClick < 300) {  // Double click
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+
+      if (voiceActive) {
+        stopVoiceChat();
+      } else {
+        startVoiceChat();
+      }
     } else {
-      setMenuVisible(true);
-      menuWasOpenRef.current = true;
+      // Single click — wait to see if it's a double click
+      clickTimeoutRef.current = setTimeout(() => {
+        interact();
+      }, 300);
     }
-  }, []);
+  }, [voiceActive, startVoiceChat, stopVoiceChat, interact]);
 
   return (
     <div className="relative w-screen h-screen select-none overflow-hidden pointer-events-none ">
@@ -174,9 +198,14 @@ export function PandaWindow() {
         <div
           className="relative outline-none"
           onClick={handleClick}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenuVisible(true);
+          }}
           data-tauri-drag-region="true"
         >
           <PetSpeechBubble state={pandaState} />
+          <VoiceWave state={pandaState} />
           <PandaSprite state={pandaState} width={140} />
         </div>
         {errorMessage && (
